@@ -165,4 +165,24 @@ describe("MOVEVI dashboard", () => {
     expect(within(table).getAllByRole("row")).toHaveLength(7);
     expect(screen.getByRole("button", { name: "下一页" })).toBeDisabled();
   });
+
+  it("uses the simplified device funnel and explained user heatmap cohorts", async () => {
+    window.history.pushState({}, "", "/devices");
+    const { unmount } = render(<App />);
+    const activation = (await screen.findByRole("heading", { name: "设备激活与首次使用漏斗" })).closest("section");
+    expect(activation).toHaveTextContent("销售");
+    expect(activation).toHaveTextContent("注册");
+    expect(activation).not.toHaveTextContent("收货");
+
+    unmount();
+    window.history.pushState({}, "", "/users");
+    render(<App />);
+    expect(await screen.findByRole("img", { name: /星期与运动时段分布热力图/ })).toBeInTheDocument();
+    expect(screen.getByTitle("周三 晚间 18–22：42%")).toBeInTheDocument();
+    expect(screen.getByText("近 30 日有效运动 ≥ 8 次")).toBeInTheDocument();
+    expect(screen.getByText("连续 3 个月保持活跃")).toBeInTheDocument();
+    expect(screen.getByLabelText("用户画像主要特征")).toBeInTheDocument();
+    expect(screen.getByLabelText("运动频次分层说明")).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("城市收藏");
+  });
 });

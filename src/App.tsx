@@ -340,10 +340,36 @@ function DetailDrawer({ stage, metric, onClose, navigate }: { stage: FunnelStage
 
 type ModuleKey = "sales" | "devices" | "users" | "content" | "explore" | "commercial" | "insights";
 
-function ModuleDataTable({ data }: { data: ModuleData }) {
+const frequencyDefinitions: Record<string, string> = {
+  高频跑者: "近 30 日有效运动 ≥ 8 次",
+  稳定跑者: "近 30 日有效运动 4–7 次",
+  低频跑者: "近 30 日有效运动 1–3 次",
+  沉默用户: "近 30 日无有效运动",
+};
+
+const lifecycleDefinitions: Record<string, string> = {
+  习惯期: "连续 3 个月保持活跃",
+  成长期: "近 30 日运动频次上升",
+  尝试期: "首次运动后的 30 日内",
+  流失期: "连续 30 日未产生运动",
+};
+
+const userTimeHeatmap = [
+  { label: "晨间 05–09", values: [32, 34, 33, 35, 34, 36, 37] },
+  { label: "日间 09–18", values: [20, 19, 18, 18, 17, 19, 20] },
+  { label: "晚间 18–22", values: [40, 40, 42, 40, 41, 38, 36] },
+  { label: "深夜 22–05", values: [8, 7, 7, 7, 8, 7, 7] },
+];
+
+function UserTimeHeatmap() {
+  const days = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+  return <article className="panel donut-panel user-time-panel"><PanelHeader title="运动时段热力" meta="星期 × 时段 · 单位：占比" action={<Info />} /><div className="user-time-heatmap" role="img" aria-label="星期与运动时段分布热力图，晚间运动占比最高"><div className="user-time-grid"><span />{days.map((day) => <b key={day}>{day}</b>)}{userTimeHeatmap.flatMap((row) => [<strong key={row.label}>{row.label}</strong>, ...row.values.map((value, index) => <i key={`${row.label}-${days[index]}`} title={`${days[index]} ${row.label}：${value}%`} style={{ backgroundColor: `rgba(13, 148, 136, ${0.12 + value / 55})` }}>{value}</i>)])}</div><div className="heat-legend"><span>占比较低</span><i /><i /><i /><i /><span>占比较高</span></div></div></article>;
+}
+
+function ModuleDataTable({ data, moduleKey }: { data: ModuleData; moduleKey: ModuleKey }) {
   return <article className="panel data-table-panel">
-    <PanelHeader title={data.sectionTitle} meta="支持横向滚动查看" action={<Database />} />
-    <div className="table-scroll"><table aria-label={data.sectionTitle}><thead><tr>{data.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{data.rows.map((row, index) => <tr key={`${row[0]}-${index}`}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>
+    <PanelHeader title={data.sectionTitle} meta={moduleKey === "users" ? "频次按近 30 日运动次数 · 生命周期按活跃状态" : "支持横向滚动查看"} action={<Database />} />
+    <div className="table-scroll"><table className={moduleKey === "users" ? "user-cohort-table" : undefined} aria-label={data.sectionTitle}><thead><tr>{data.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{data.rows.map((row, index) => <tr key={`${row[0]}-${index}`}>{row.map((cell, cellIndex) => moduleKey === "users" && (cellIndex === 0 || cellIndex === 5) ? <td className="cohort-cell" key={cellIndex}><strong>{cell}</strong><small>{cellIndex === 0 ? frequencyDefinitions[String(cell)] : lifecycleDefinitions[String(cell)]}</small></td> : <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>
   </article>;
 }
 
@@ -359,8 +385,8 @@ function ModulePage({ moduleKey, filters, loader }: { moduleKey: ModuleKey; filt
     <DataState status={result.status} />
     <section className="module-hero"><div><h2>{data.title}</h2><p>{data.description}</p></div><div className="quality-chip"><SealCheck weight="fill" /><div><b>数据可用</b><span>截止 {result.asOf}</span></div></div></section>
     <section className="kpi-grid module-kpis">{data.metrics.map((item) => <KpiCard key={item.id} metric={item} onClick={() => setSelectedMetric(item)} />)}</section>
-    <section className="module-charts"><article className="panel chart-panel"><PanelHeader title={data.chartTitle} meta={`本期与上期环比 · 单位：${data.chartUnit}`} action={<ChartLineUp />} /><div className="chart-wrap" role="img" aria-label={`${data.chartTitle}，本期与上期对比趋势`}><ResponsiveContainer width="100%" height="100%"><AreaChart data={data.trend} margin={{ top: 12, right: 18, left: -18, bottom: 0 }}><defs><linearGradient id={`fill-${data.title}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d9488" stopOpacity={0.32} /><stop offset="100%" stopColor="#0d9488" stopOpacity={0.02} /></linearGradient></defs><CartesianGrid vertical={false} stroke="#e8edf3" /><XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} /><YAxis tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} /><Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #dce4ed", boxShadow: "0 10px 30px rgba(15,23,42,.1)" }} /><Area type="monotone" dataKey="value" name={`本期（${data.chartUnit}）`} stroke="#0d9488" strokeWidth={2.5} fill={`url(#fill-${data.title})`} /><Line type="monotone" dataKey="secondary" name={`上期（${data.chartUnit}）`} stroke="#94a3b8" strokeDasharray="4 4" dot={false} /></AreaChart></ResponsiveContainer></div></article><article className="panel donut-panel"><PanelHeader title={data.distributionTitle} meta="当前筛选范围" action={<Info />} /><div className="donut-wrap"><div className="pie-area" role="img" aria-label={`${data.distributionTitle}环形图`}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data.distribution} dataKey="value" nameKey="name" innerRadius={48} outerRadius={72} paddingAngle={3}>{data.distribution.map((_, index) => <Cell key={index} fill={pieColors[index % pieColors.length]} />)}</Pie><Tooltip formatter={(value) => `${value}%`} /></PieChart></ResponsiveContainer><div className="pie-center"><b>{data.distribution.length}</b><span>类</span></div></div><ul className="legend-list">{data.distribution.map((item, index) => <li key={item.name}><i style={{ background: pieColors[index % pieColors.length] }} /><span>{item.name}</span><b>{item.value}%</b></li>)}</ul></div></article></section>
-    {moduleKey !== "devices" && <section className="module-bottom"><ModuleDataTable data={data} /><aside className="signal-list">{data.notes.map((note) => <article key={note.title} className={`signal ${note.tone}`}><span>{note.tone === "red" ? <WarningCircle /> : note.tone === "teal" ? <TrendUp /> : <Info />}</span><div><h3>{note.title}</h3><p>{note.text}</p></div></article>)}<button className="back-button" onClick={() => navigate(`/dashboard?${new URLSearchParams(filters as unknown as Record<string, string>).toString()}`)}><ArrowRight />返回数据概览</button></aside></section>}
+    <section className="module-charts"><article className="panel chart-panel"><PanelHeader title={data.chartTitle} meta={`本期与上期环比 · 单位：${data.chartUnit}`} action={<ChartLineUp />} /><div className="chart-wrap" role="img" aria-label={`${data.chartTitle}，本期与上期对比趋势`}><ResponsiveContainer width="100%" height="100%"><AreaChart data={data.trend} margin={{ top: 12, right: 18, left: -18, bottom: 0 }}><defs><linearGradient id={`fill-${data.title}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d9488" stopOpacity={0.32} /><stop offset="100%" stopColor="#0d9488" stopOpacity={0.02} /></linearGradient></defs><CartesianGrid vertical={false} stroke="#e8edf3" /><XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} /><YAxis tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} /><Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #dce4ed", boxShadow: "0 10px 30px rgba(15,23,42,.1)" }} /><Area type="monotone" dataKey="value" name={`本期（${data.chartUnit}）`} stroke="#0d9488" strokeWidth={2.5} fill={`url(#fill-${data.title})`} /><Line type="monotone" dataKey="secondary" name={`上期（${data.chartUnit}）`} stroke="#94a3b8" strokeDasharray="4 4" dot={false} /></AreaChart></ResponsiveContainer></div></article>{moduleKey === "users" ? <UserTimeHeatmap /> : <article className="panel donut-panel"><PanelHeader title={data.distributionTitle} meta="当前筛选范围" action={<Info />} /><div className="donut-wrap"><div className="pie-area" role="img" aria-label={`${data.distributionTitle}环形图`}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data.distribution} dataKey="value" nameKey="name" innerRadius={48} outerRadius={72} paddingAngle={3}>{data.distribution.map((_, index) => <Cell key={index} fill={pieColors[index % pieColors.length]} />)}</Pie><Tooltip formatter={(value) => `${value}%`} /></PieChart></ResponsiveContainer><div className="pie-center"><b>{data.distribution.length}</b><span>类</span></div></div><ul className="legend-list">{data.distribution.map((item, index) => <li key={item.name}><i style={{ background: pieColors[index % pieColors.length] }} /><span>{item.name}</span><b>{item.value}%</b></li>)}</ul></div></article>}</section>
+    {moduleKey !== "devices" && <section className="module-bottom"><ModuleDataTable data={data} moduleKey={moduleKey} /><aside className="signal-list">{data.notes.map((note) => <article key={note.title} className={`signal ${note.tone}`}><span>{note.tone === "red" ? <WarningCircle /> : note.tone === "teal" ? <TrendUp /> : <Info />}</span><div><h3>{note.title}</h3><p>{note.text}</p></div></article>)}<button className="back-button" onClick={() => navigate(`/dashboard?${new URLSearchParams(filters as unknown as Record<string, string>).toString()}`)}><ArrowRight />返回数据概览</button></aside></section>}
     <DeepDiveSections moduleKey={moduleKey} moduleData={data} />
     <footer className="module-foot"><span>{result.definition}</span><span>{result.source}</span></footer>
     {selectedMetric && <DetailDrawer stage={null} metric={selectedMetric} onClose={() => setSelectedMetric(null)} />}
