@@ -1,9 +1,10 @@
 import { useState } from "react";
 import {
   ArrowRight, ChartLineUp, CheckCircle, CirclesThreePlus, Clock, Compass, DeviceMobile,
-  Info, MapPin, Medal, Path, Sparkle, Tag, TrendDown, UsersThree, X,
+  Info, MagnifyingGlass, MapPin, Medal, Path, Sparkle, Tag, TrendDown, UsersThree, X,
 } from "@phosphor-icons/react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { ModuleData } from "./data";
 
 type ModuleKey = "sales" | "devices" | "users" | "content" | "explore" | "commercial" | "insights";
 
@@ -48,14 +49,27 @@ function SalesDeepDive() {
   return <><section className="deep-panel"><SectionHead title="完整销售漏斗" desc="补齐点击、加购、下单、发货与退款，区分卖得多和卖得好。" /><MiniFunnel data={salesFunnel} refundLast /></section><section className="deep-panel"><SectionHead title="四大销售渠道质量" desc="抖音、天猫、京东和拼多多统一比较。" /><SimpleTable caption="四大销售渠道交易漏斗" columns={["渠道","曝光","点击","咨询","加购","支付","发货","退款"]} rows={rows} /></section></>;
 }
 
-function DevicesDeepDive() {
-  const records = [
-    ["MOVEVI-TS3P-000001","TS3PRO","2026-05-18","2026-06-02","U-88201","06-08 10:24","06-08 10:31","186","96.4h","42","无","v3.8.2","v5.6.0"],
-    ["MOVEVI-TS3-000418","TS3","2026-06-03","2026-06-21","U-77198","06-28 19:42","06-28 19:47","73","42.1h","19","蓝牙中断×1","v3.8.1","v5.6.0"],
-    ["MOVEVI-TS2P-001204","TS2PRO","2026-04-11","2026-05-05","U-55027","05-12 08:20","05-12 08:28","31","18.6h","12","跑带偏移×1","v3.7.9","v5.5.2"],
-    ["MOVEVI-TS2-001678","TS2","2026-06-21","2026-07-02","U-44291","07-09 20:15","07-09 20:22","12","8.6h","6","无","v3.8.0","v5.5.2"],
-  ];
-  return <><section className="deep-panel"><SectionHead title="设备激活与首次使用漏斗" desc="卖出去不等于真正使用；成功连接与首跑是当前最大断点。" /><MiniFunnel data={activationFunnel} /></section><section className="deep-panel"><SectionHead title="一机一档完整字段" desc="以唯一 SN 串联出厂、交易、用户、连接、使用、故障与版本。" /><SimpleTable caption="设备完整档案" columns={["设备唯一 ID","型号","出厂时间","销售时间","用户","激活时间","首次连接","蓝牙连接","使用时长","使用次数","故障记录","固件","APP"]} rows={records} /></section></>;
+function DeviceRecordTable({ columns, rows }: { columns: string[]; rows: (string | number)[][] }) {
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const normalizedQuery = query.trim().toLocaleLowerCase("zh-CN");
+  const filteredRows = normalizedQuery ? rows.filter((row) => row.some((cell) => String(cell).toLocaleLowerCase("zh-CN").includes(normalizedQuery))) : rows;
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const visibleRows = filteredRows.slice(pageStart, pageStart + pageSize);
+
+  return <section className="deep-panel device-records">
+    <SectionHead title="一机一档完整字段表" desc="以唯一 SN 串联出厂、交易、用户、连接、使用、故障与版本。" />
+    <div className="device-record-toolbar"><label className="table-search"><MagnifyingGlass /><span className="sr-only">搜索设备</span><input type="search" aria-label="搜索一机一档设备" placeholder="搜索设备、型号、用户、固件或故障" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} /></label><span>每页显示 10 条</span></div>
+    <div className="table-scroll deep-table"><table><caption className="sr-only">一机一档完整字段表</caption><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{visibleRows.length > 0 ? visibleRows.map((row, index) => <tr key={`${row[0]}-${index}`}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>) : <tr><td className="empty-table-cell" colSpan={columns.length}>未找到匹配设备，请更换搜索条件</td></tr>}</tbody></table></div>
+    <footer className="table-pagination"><span>共 {filteredRows.length} 台设备 · 第 {currentPage} / {totalPages} 页{filteredRows.length > 0 && ` · 当前 ${pageStart + 1}–${Math.min(pageStart + pageSize, filteredRows.length)} 条`}</span><div><button type="button" onClick={() => setPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}><ArrowRight />上一页</button><button type="button" onClick={() => setPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>下一页<ArrowRight /></button></div></footer>
+  </section>;
+}
+
+function DevicesDeepDive({ data }: { data: ModuleData }) {
+  return <><section className="deep-panel"><SectionHead title="设备激活与首次使用漏斗" desc="卖出去不等于真正使用；成功连接与首跑是当前最大断点。" /><MiniFunnel data={activationFunnel} /></section><DeviceRecordTable columns={data.columns} rows={data.rows} /></>;
 }
 
 function UserDeepDive() {
@@ -81,7 +95,7 @@ function InsightsDeepDive() {
   return <><section className="deep-panel feature-insight"><SectionHead title="夜景城市路线是下一阶段内容机会" desc="过去 30 天，25–35 岁用户对夜景城市路线的偏好明显高于其他类型。" /><div className="insight-story"><Sparkle weight="fill" /><div><b>结论</b><p>东京、巴黎夜景路线完成率高于城市平均水平 <strong>18%</strong>，其中 25–35 岁女性的收藏率高出 <strong>24%</strong>。</p></div><ArrowRight /><div><b>建议</b><p>下一阶段优先增加 20 分钟、轻运动、海边或地标建筑的夜间城市路线。</p></div></div></section><section className="deep-panel"><SectionHead title="硬件与内容交叉偏好" desc="让产品设计与内容生产互相指导，并用于个性化推荐。" /><SimpleTable caption="设备与内容交叉偏好" columns={["硬件","主要运动","偏好内容","平均强度","平均时长","推荐策略"]} rows={[["TS2","慢走","轻运动城市 / 老街","低","18 分","推荐轻运动路线"],["TS2PRO","快走 / 慢跑","滨水 / 夜景","中低","22 分","推荐 20 分钟夜景路线"],["TS3","跑步","城市街道 / 滨水","中","26 分","推荐节奏跑路线"],["TS3PRO","间歇 / 坡度","HIIT / 山地城市","高","32 分","推荐 HIIT 与坡度路线"]]} /></section></>;
 }
 
-export function DeepDiveSections({ moduleKey }: { moduleKey: ModuleKey }) {
-  const content = { sales:<SalesDeepDive />, devices:<DevicesDeepDive />, users:<UserDeepDive />, content:<ContentDeepDive />, explore:<ExploreDeepDive />, commercial:<CommercialDeepDive />, insights:<InsightsDeepDive /> }[moduleKey];
+export function DeepDiveSections({ moduleKey, moduleData }: { moduleKey: ModuleKey; moduleData: ModuleData }) {
+  const content = { sales:<SalesDeepDive />, devices:<DevicesDeepDive data={moduleData} />, users:<UserDeepDive />, content:<ContentDeepDive />, explore:<ExploreDeepDive />, commercial:<CommercialDeepDive />, insights:<InsightsDeepDive /> }[moduleKey];
   return <section className="deep-dive" aria-label="需求补充的深度分析">{content}</section>;
 }

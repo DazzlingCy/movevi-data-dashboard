@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { describe, expect, it } from "vitest";
@@ -19,7 +19,7 @@ describe("MOVEVI dashboard", () => {
     expect(await screen.findByRole("dialog")).toHaveTextContent("设备激活后 7 日内产生首个有效运动记录");
     await userEvent.click(screen.getByRole("button", { name: "关闭" }));
     await userEvent.click(screen.getByRole("link", { name: /设备中心/ }));
-    expect(await screen.findByText("一机一档（演示）")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "一机一档完整字段表" })).toBeInTheDocument();
   });
 
   it("keeps the channel filter exclusive to sales", async () => {
@@ -33,7 +33,7 @@ describe("MOVEVI dashboard", () => {
     await waitFor(() => expect(window.location.search).toContain("channel=%E5%A4%A9%E7%8C%AB"));
     expect(window.location.search).toContain("product=TS3PRO");
     await userEvent.click(screen.getByRole("link", { name: "设备中心" }));
-    expect(await screen.findByText("一机一档（演示）")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "一机一档完整字段表" })).toBeInTheDocument();
     expect(screen.queryByLabelText("渠道")).not.toBeInTheDocument();
     await waitFor(() => expect(window.location.search).not.toContain("channel="));
     expect(window.location.search).toContain("product=TS3PRO");
@@ -128,5 +128,27 @@ describe("MOVEVI dashboard", () => {
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("自然日内至少产生 1 次有效运动");
     expect(screen.queryByRole("button", { name: /进入.+中心/ })).not.toBeInTheDocument();
+  });
+
+  it("shows ten device records per page and supports paging and search", async () => {
+    window.history.pushState({}, "", "/devices");
+    render(<App />);
+    const table = await screen.findByRole("table", { name: "一机一档完整字段表" });
+    expect(screen.getAllByRole("heading", { name: "一机一档完整字段表" })).toHaveLength(1);
+    expect(within(table).getAllByRole("row")).toHaveLength(11);
+    ["最近连接", "30日连接", "累计运动", "累计时长", "累计里程"].forEach((column) => expect(within(table).getByRole("columnheader", { name: column })).toBeInTheDocument());
+    expect(screen.getByText(/共 24 台设备 · 第 1 \/ 3 页 · 当前 1–10 条/)).toBeInTheDocument();
+    expect(screen.queryByText("主要断点：激活后首跑")).not.toBeInTheDocument();
+    expect(screen.queryByText("固件升级建议")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "返回数据概览" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "下一页" }));
+    expect(screen.getByText(/第 2 \/ 3 页 · 当前 11–20 条/)).toBeInTheDocument();
+    expect(within(table).getByText("MV26-374951")).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole("searchbox", { name: "搜索一机一档设备" }), "故障");
+    expect(screen.getByText(/共 6 台设备 · 第 1 \/ 1 页 · 当前 1–6 条/)).toBeInTheDocument();
+    expect(within(table).getAllByRole("row")).toHaveLength(7);
+    expect(screen.getByRole("button", { name: "下一页" })).toBeDisabled();
   });
 });

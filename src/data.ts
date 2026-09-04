@@ -236,6 +236,12 @@ const metric = (id: string, label: string, value: string, raw: number, change: s
   definition: metricDefinitions[label] ?? "当前筛选周期内按统一模拟事实数据集去重汇总，环比对比上一相同长度周期。",
 });
 
+function shiftIsoDate(value: string, days: number) {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 const modules: Record<string, ModuleData> = {
   sales: {
     title: "销售中心", description: "从渠道曝光到退款，判断增长的规模、质量与可持续性。",
@@ -250,7 +256,37 @@ const modules: Record<string, ModuleData> = {
     metrics: [metric("activated", "已激活设备", "30,563 台", 30563, "+6.2%", "累计激活"), metric("rate", "7日激活率", "82.8%", 82.8, "-3.4pp", "签收设备口径", "negative"), metric("usage", "30日使用率", "63.6%", 63.6, "+2.1pp", "近 30 日有连接"), metric("fault", "故障设备率", "1.8%", 1.8, "-0.4pp", "较上月下降 0.4pp")],
     trend: trend([71, 74, 76, 80, 79, 83, 82, 86, 88]), chartTitle: "设备激活与连接趋势", chartUnit: "%",
     distribution: [{ name: "活跃", value: 64 }, { name: "低频", value: 21 }, { name: "沉默", value: 13 }, { name: "故障", value: 2 }], distributionTitle: "设备状态分布",
-    columns: ["设备 SN", "型号", "固件", "最近连接", "累计时长", "状态"], rows: [["MV26-884201", "TS3PRO", "v3.8.2", "今天 09:42", "186h", "活跃"], ["MV26-773198", "TS3", "v3.8.1", "昨天 21:06", "73h", "活跃"], ["MV26-550027", "TS2PRO", "v3.7.9", "14 天前", "12h", "低频"], ["MV26-442911", "TS2", "v3.8.2", "32 天前", "4h", "沉默"]], sectionTitle: "一机一档（演示）",
+    columns: ["设备唯一 ID", "型号", "出厂时间", "销售时间", "绑定用户", "激活时间", "首次连接", "最近连接", "30日连接", "累计运动", "累计时长", "累计里程", "故障记录", "固件版本", "APP版本", "状态"],
+    rows: ([
+      ["MV26-884201", "TS3PRO", "v3.8.2", "2026-04-18", "今天 09:42", "48 次", "126 次", "186h", "1,284 km", 0, "MVU-2458", "活跃"],
+      ["MV26-773198", "TS3", "v3.8.1", "2026-05-02", "昨天 21:06", "39 次", "84 次", "73h", "526 km", 0, "MVU-9183", "活跃"],
+      ["MV26-550027", "TS2PRO", "v3.7.9", "2026-02-21", "14 天前", "6 次", "18 次", "12h", "86 km", 1, "MVU-5067", "低频"],
+      ["MV26-442911", "TS2", "v3.8.2", "2025-12-08", "32 天前", "0 次", "7 次", "4h", "31 km", 0, "MVU-1294", "沉默"],
+      ["MV26-930614", "TS3PRO", "v3.8.2", "2026-07-11", "今天 08:17", "52 次", "96 次", "142h", "1,018 km", 0, "MVU-6371", "活跃"],
+      ["MV26-821507", "TS3", "v3.8.2", "2026-06-26", "今天 07:35", "44 次", "71 次", "98h", "692 km", 0, "MVU-4702", "活跃"],
+      ["MV26-718392", "TS2PRO", "v3.8.0", "2026-03-15", "3 天前", "21 次", "55 次", "61h", "408 km", 0, "MVU-3526", "活跃"],
+      ["MV26-607284", "TS2", "v3.7.9", "2026-01-19", "9 天前", "9 次", "26 次", "23h", "146 km", 1, "MVU-8041", "低频"],
+      ["MV26-596173", "TS3PRO", "v3.8.2", "2026-08-03", "今天 10:03", "57 次", "88 次", "117h", "834 km", 0, "MVU-2938", "活跃"],
+      ["MV26-485062", "TS3", "v3.8.1", "2026-07-29", "昨天 18:48", "32 次", "49 次", "66h", "472 km", 0, "MVU-7154", "活跃"],
+      ["MV26-374951", "TS2PRO", "v3.8.0", "2026-04-06", "5 天前", "14 次", "42 次", "38h", "258 km", 0, "MVU-6280", "低频"],
+      ["MV26-263840", "TS2", "v3.7.8", "2025-11-24", "27 天前", "1 次", "12 次", "7h", "48 km", 2, "MVU-1437", "故障"],
+      ["MV26-152739", "TS3PRO", "v3.8.2", "2026-08-18", "今天 06:52", "49 次", "63 次", "82h", "596 km", 0, "MVU-9672", "活跃"],
+      ["MV26-041628", "TS3", "v3.8.2", "2026-06-09", "2 天前", "26 次", "58 次", "74h", "511 km", 0, "MVU-3815", "活跃"],
+      ["MV25-938517", "TS2PRO", "v3.7.9", "2025-10-17", "16 天前", "4 次", "21 次", "15h", "97 km", 1, "MVU-5264", "低频"],
+      ["MV25-827406", "TS2", "v3.8.1", "2026-02-08", "35 天前", "0 次", "9 次", "6h", "39 km", 0, "MVU-6709", "沉默"],
+      ["MV25-716395", "TS3PRO", "v3.8.2", "2026-05-23", "今天 11:26", "61 次", "132 次", "204h", "1,462 km", 0, "MVU-4581", "活跃"],
+      ["MV25-605284", "TS3", "v3.8.0", "2026-03-30", "4 天前", "18 次", "47 次", "53h", "367 km", 0, "MVU-8926", "活跃"],
+      ["MV25-594173", "TS2PRO", "v3.7.8", "2025-09-14", "22 天前", "2 次", "15 次", "9h", "62 km", 2, "MVU-2148", "故障"],
+      ["MV25-483062", "TS2", "v3.8.1", "2026-01-05", "12 天前", "7 次", "24 次", "19h", "128 km", 0, "MVU-7395", "低频"],
+      ["MV25-372951", "TS3PRO", "v3.8.2", "2026-08-21", "今天 09:18", "46 次", "54 次", "69h", "503 km", 0, "MVU-8462", "活跃"],
+      ["MV25-261840", "TS3", "v3.8.1", "2026-07-07", "昨天 20:14", "35 次", "67 次", "91h", "648 km", 0, "MVU-1753", "活跃"],
+      ["MV25-150739", "TS2PRO", "v3.8.0", "2026-04-27", "7 天前", "11 次", "36 次", "31h", "219 km", 0, "MVU-6048", "低频"],
+      ["MV25-049628", "TS2", "v3.7.9", "2025-08-12", "41 天前", "0 次", "5 次", "3h", "18 km", 1, "MVU-9327", "沉默"],
+    ] as (string | number)[][]).map((row, index) => {
+      const [sn, model, firmware, activatedAt, latestConnection, connections30d, totalWorkouts, totalDuration, totalDistance, faultCount, user, status] = row;
+      return [sn, model, shiftIsoDate(String(activatedAt), -32), shiftIsoDate(String(activatedAt), -8), user, activatedAt, `${activatedAt} 当日`, latestConnection, connections30d, totalWorkouts, totalDuration, totalDistance, Number(faultCount) > 0 ? `故障×${faultCount}` : "无", firmware, index % 3 === 0 ? "v5.6.0" : index % 3 === 1 ? "v5.5.2" : "v5.6.1", status];
+    }),
+    sectionTitle: "一机一档完整字段表",
     notes: [{ title: "主要断点：激活后首跑", text: "16,263 台设备完成激活后 7 日内未产生首次运动。", tone: "red" }, { title: "固件升级建议", text: "v3.7.x 连接失败率是最新版本的 2.4 倍。", tone: "orange" }],
   },
   users: {
@@ -441,11 +477,16 @@ function filteredModule(key: keyof typeof modules, filters: ReportFilters): Modu
   const scopedFilters = key === "sales" ? filters : { ...filters, channel: "全部渠道" };
   const scale = scaleFor(scopedFilters);
   const scaleTrend = ["sales", "commercial", "insights", "users"].includes(key) ? scale : 1 + (scale - 1) * 0.08;
+  const rows = key === "sales" && filters.channel !== "全部渠道"
+    ? source.rows.filter((row) => row[0] === filters.channel)
+    : key === "devices" && filters.product !== "全部型号"
+      ? source.rows.filter((row) => row[1] === filters.product)
+      : source.rows;
   return {
     ...source,
     metrics: source.metrics.map((item) => item.raw > 100 ? { ...item, raw: Math.round(item.raw * scale), value: formatScaledValue(item.value, item.raw * scale) } : item),
     trend: source.trend.map((item) => ({ ...item, value: Number((item.value * scaleTrend).toFixed(1)), secondary: item.secondary == null ? undefined : Number((item.secondary * scaleTrend).toFixed(1)) })),
-    rows: key === "sales" && filters.channel !== "全部渠道" ? source.rows.filter((row) => row[0] === filters.channel) : source.rows,
+    rows,
   };
 }
 

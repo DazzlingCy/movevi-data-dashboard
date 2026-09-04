@@ -34,6 +34,18 @@ describe("MockDataProvider", () => {
     expect(result.data.trend.every((point) => !("target" in point))).toBe(true);
   });
 
+  it("provides a complete searchable device ledger", async () => {
+    const result = await dataProvider.getDeviceCenter(defaultFilters);
+    expect(result.data.sectionTitle).toBe("一机一档完整字段表");
+    expect(result.data.columns).toHaveLength(16);
+    expect(result.data.columns).toEqual(expect.arrayContaining(["设备唯一 ID", "出厂时间", "销售时间", "绑定用户", "激活时间", "首次连接", "最近连接", "30日连接", "累计运动", "累计时长", "累计里程", "故障记录", "固件版本", "APP版本", "状态"]));
+    expect(result.data.rows).toHaveLength(24);
+    expect(result.data.rows.every((row) => row.length === result.data.columns.length)).toBe(true);
+    const ts3 = await dataProvider.getDeviceCenter({ ...defaultFilters, product: "TS3" });
+    expect(ts3.data.rows).toHaveLength(6);
+    expect(ts3.data.rows.every((row) => row[1] === "TS3")).toBe(true);
+  });
+
   it("provides the two activity reports with understandable definitions", async () => {
     const activity = await dataProvider.getActivityCenter(defaultFilters);
     expect(activity.data.lightStarPeriods).toHaveLength(4);
