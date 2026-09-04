@@ -69,9 +69,46 @@ describe("MOVEVI dashboard", () => {
     unmount();
     window.history.pushState({}, "", "/content");
     render(<App />);
-    expect(await screen.findByText("20 分钟路线退出点")).toBeInTheDocument();
-    expect(screen.getByText("每条路线完整数据档案")).toBeInTheDocument();
+    const region = await screen.findByRole("heading", { name: "区域" });
+    const city = screen.getByRole("heading", { name: "城市" });
+    const route = screen.getByRole("heading", { name: "路线" });
+    expect(region.compareDocumentPosition(city) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(city.compareDocumentPosition(route) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(route.compareDocumentPosition(screen.getByText("20 分钟路线退出点")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getAllByText("景点热度").length).toBeGreaterThan(0);
+  });
+
+  it("expands complete content catalogs and paginates route performance", async () => {
+    window.history.pushState({}, "", "/content");
+    render(<App />);
+    expect(await screen.findByText("路线完播率趋势")).toBeInTheDocument();
+    expect(screen.getByText("城市路线分布")).toBeInTheDocument();
+    expect(screen.getByText("32座")).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("收藏分享");
+
+    await userEvent.click(screen.getByRole("button", { name: "展开已上线城市列表" }));
+    const cityDialog = await screen.findByRole("dialog", { name: "已上线城市" });
+    ["亚洲", "欧洲", "非洲", "北美洲", "南美洲", "大洋洲"].forEach((continent) => expect(within(cityDialog).getByRole("heading", { name: continent })).toBeInTheDocument());
+    expect(within(cityDialog).getByText("32 座")).toBeInTheDocument();
+    expect(within(cityDialog).getByText("霍巴特")).toBeInTheDocument();
+    await userEvent.click(within(cityDialog).getByRole("button", { name: "关闭" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "展开有效路线列表" }));
+    const routeDialog = await screen.findByRole("dialog", { name: "有效路线" });
+    const catalogTable = within(routeDialog).getByRole("table", { name: "有效路线目录" });
+    expect(within(catalogTable).getAllByRole("row")).toHaveLength(11);
+    expect(routeDialog).toHaveTextContent("共 1,248 条路线 · 第 1 / 125 页");
+    await userEvent.type(within(routeDialog).getByRole("searchbox", { name: "搜索有效路线" }), "东京");
+    expect(routeDialog).toHaveTextContent("共 15 条路线 · 第 1 / 2 页");
+    await userEvent.click(within(routeDialog).getByRole("button", { name: "关闭" }));
+
+    const performanceTable = screen.getByRole("table", { name: "城市与路线综合热度" });
+    expect(within(performanceTable).getAllByRole("row")).toHaveLength(11);
+    expect(screen.getByText("共 30 条路线 · 第 1 / 3 页 · 当前 1–10 条")).toBeInTheDocument();
+    expect(within(performanceTable).queryByRole("columnheader", { name: /收藏|分享/ })).not.toBeInTheDocument();
+    await userEvent.type(screen.getByRole("searchbox", { name: "搜索路线名称" }), "塞纳河左岸");
+    expect(within(performanceTable).getAllByRole("row")).toHaveLength(2);
+    expect(within(performanceTable).getByText("巴黎 · 塞纳河左岸")).toBeInTheDocument();
   });
 
   it("renders the activity center and opens a metric definition", async () => {

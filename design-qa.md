@@ -40,6 +40,7 @@
 | P2 | 全局渠道筛选会让设备、用户、内容等非销售指标产生错误的渠道归因。 | 渠道筛选仅保留在销售中心；进入其他路由时自动清理 URL 渠道参数，数据层强制按全渠道汇总，并移除漏斗下钻、设备档案和用户画像中的渠道拆分。数据概览仅保留明确标注为销售数据的渠道概览。 |
 | P2 | 侧栏使用临时脉冲图标，未体现正式品牌资产。 | 使用用户上传的 MOVEVI 渐变方形标识，并保留深色侧栏下的清晰对比。 |
 | P2 | 设备首次使用漏斗多出“收货”，用户时段仍为宽泛环形图，用户分层缺少直观解释且两张表需要横向滚动。 | 移除“收货”；将顶部时段分布改为星期×3小时时段热力图；在频次与生命周期表内直接补充判定规则；用户画像和频次分层改成带占比条的纵向卡片，并清理城市收藏相关文案。 |
+| P2 | 内容中心缺少完整城市/路线目录，区域、城市、路线层级混排，趋势和热度表仍使用收藏分享口径。 | 城市 KPI 展开六大洲 86 城完整列表，路线 KPI 展开 1,248 条可搜索分页目录；正文按区域→城市→路线顺序排列；趋势改为路线完播率，大洲图改为城市数量分布，路线热度表每页 10 条并移除收藏分享字段。 |
 
 ## Acceptance checks
 
@@ -52,7 +53,7 @@
 - Activity center exposes two independent child routes; the lottery period selector is keyboard reachable, persists as a scoped URL parameter, and updates every report section from the same selected-period dataset.
 - Browser console: 0 errors across all nine routes.
 - `npm run typecheck`: passed.
-- `npm test`: 16/16 passed, including data derivation, 11-stage coverage, month-over-month series, routing, URL persistence, keyboard flow, activity center, metric definitions, simplified activation funnel, user heatmap/cohort explanations, requirement blocks, and axe serious/critical checks.
+- `npm test`: 17/17 passed, including data derivation, 11-stage coverage, month-over-month series, routing, URL persistence, keyboard flow, activity center, metric definitions, content catalogs/search/pagination, simplified activation funnel, user heatmap/cohort explanations, requirement blocks, and axe serious/critical checks.
 - `npm run build`: passed.
 - `npm run test:sites`: 4/4 passed.
 

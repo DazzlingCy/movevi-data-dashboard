@@ -1,3 +1,5 @@
+import { contentCityGroups, contentRoutePerformanceRows } from "./contentCatalogData";
+
 export type DataStatus = "ready" | "delayed" | "empty" | "definition_pending" | "source_unavailable";
 
 export type ReportFilters = {
@@ -75,6 +77,7 @@ export type ModuleData = {
   chartUnit: string;
   distribution: { name: string; value: number; color?: string }[];
   distributionTitle: string;
+  distributionUnit?: string;
   columns: string[];
   rows: (string | number)[][];
   sectionTitle: string;
@@ -194,6 +197,7 @@ const metricDefinitions: Record<string, string> = {
   "有效路线": "已通过内容审核且近 90 日至少被启动 1 次的 MOVEVI App 路线数。",
   "城市景点数": "已配置在上线路线中并可在 MOVEVI App 展示的去重景点数。",
   "路线完成率": "完成路线的去重启动次数 ÷ 有效开始路线次数。",
+  "路线完播率": "完整播放路线内容并完成路线的次数 ÷ 有效开始路线次数。",
   "30日复跑率": "完成路线后 30 日内再次完成同一路线的用户数 ÷ 路线完成人数。",
   "第二条路线启动率": "完成首条路线后 14 日内启动不同路线的用户数 ÷ 首条路线完成人数。",
   "城市解锁用户": "在 MOVEVI App 内达到城市解锁条件的去重用户数。",
@@ -299,10 +303,10 @@ const modules: Record<string, ModuleData> = {
   },
   content: {
     title: "内容中心", description: "按大洲、城市、路线与景点管理 MOVEVI App 城市内容资产和完成进度。",
-    metrics: [metric("cities", "已上线城市", "86", 86, "+8", "覆盖 7 个大洲分区"), metric("routes", "有效路线", "1,248", 1248, "+6.4%", "本月新增 76 条"), metric("spots", "城市景点数", "6,842", 6842, "+5.8%", "路线内可识别景点"), metric("completion", "路线完成率", "71.8%", 71.8, "+2.6pp", "有效开始路线")],
-    trend: trend([61, 64, 63, 68, 70, 69, 73, 75, 78]), chartTitle: "路线完成与收藏趋势", chartUnit: "%",
-    distribution: [{ name: "城市探索", value: 35 }, { name: "文化地标", value: 27 }, { name: "滨水绿道", value: 23 }, { name: "夜跑友好", value: 15 }], distributionTitle: "内容标签结构",
-    columns: ["城市 / 路线", "启动人数", "完成率", "复跑率", "收藏分享", "综合热度"], rows: [["上海 · 外滩夜航", "3,842", "82.4%", "34.8%", "1,286", "96"], ["杭州 · 西湖十景", "3,197", "79.1%", "31.6%", "1,044", "93"], ["成都 · 锦城绿道", "2,786", "74.8%", "28.3%", "886", "88"], ["北京 · 中轴线", "2,512", "68.5%", "21.9%", "742", "82"]], sectionTitle: "城市与路线综合热度",
+    metrics: [metric("cities", "已上线城市", "86", 86, "+8", "点击查看六大洲城市列表"), metric("routes", "有效路线", "1,248", 1248, "+6.4%", "点击搜索全部有效路线"), metric("spots", "城市景点数", "6,842", 6842, "+5.8%", "路线内可识别景点"), metric("completion", "路线完播率", "71.8%", 71.8, "+2.6pp", "完整播放并完成路线")],
+    trend: trend([61, 64, 63, 68, 70, 69, 73, 75, 78]), chartTitle: "路线完播率趋势", chartUnit: "%",
+    distribution: contentCityGroups.map((group) => ({ name: group.continent, value: group.cities.length })), distributionTitle: "城市路线分布", distributionUnit: "座",
+    columns: ["路线名称", "所属城市", "所属大洲", "启动人数", "完播率", "复跑率", "平均时长", "综合热度"], rows: contentRoutePerformanceRows, sectionTitle: "城市与路线综合热度",
     notes: [{ title: "3–4 公里处退出集中", text: "路线退出曲线在补给提示前出现明显抬升。", tone: "orange" }, { title: "滨水路线复跑更高", text: "同等难度下，滨水标签复跑率高 8.3pp。", tone: "teal" }],
   },
   explore: {
