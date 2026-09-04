@@ -5,6 +5,32 @@ import { describe, expect, it } from "vitest";
 import { App, getBusinessModuleTarget } from "./App";
 
 describe("MOVEVI dashboard", () => {
+  it("searches business content and only navigates to valid module routes", async () => {
+    window.history.pushState({}, "", "/dashboard?product=TS3PRO");
+    render(<App />);
+
+    await userEvent.keyboard("{Control>}k{/Control}");
+    const dialog = await screen.findByRole("dialog", { name: "全局搜索" });
+    const searchbox = within(dialog).getByRole("searchbox", { name: "搜索模块、指标或报表" });
+    await userEvent.type(searchbox, "一机一档");
+    expect(within(dialog).getByText("找到 2 项")).toBeInTheDocument();
+    expect(within(dialog).getByText("搜索设备、用户、型号、固件、连接与故障记录")).toBeInTheDocument();
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByRole("heading", { name: "一机一档完整字段表" })).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/devices");
+    expect(window.location.search).toContain("product=TS3PRO");
+
+    await userEvent.keyboard("{Control>}k{/Control}");
+    const reopened = await screen.findByRole("dialog", { name: "全局搜索" });
+    await userEvent.type(within(reopened).getByRole("searchbox", { name: "搜索模块、指标或报表" }), "不存在的业务指标");
+    expect(within(reopened).getByText("未找到“不存在的业务指标”")).toBeInTheDocument();
+    expect(within(reopened).queryByRole("button", { name: /进入/ })).not.toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "全局搜索" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "全局搜索" })).toHaveFocus();
+  });
+
   it("renders all routes and opens a keyboard-operable funnel drilldown", async () => {
     window.history.pushState({}, "", "/dashboard");
     render(<App />);
@@ -78,6 +104,18 @@ describe("MOVEVI dashboard", () => {
     expect(screen.getAllByText("景点热度").length).toBeGreaterThan(0);
   });
 
+  it("shows new-user acquisition, conversion and first-week retention in the user center", async () => {
+    window.history.pushState({}, "", "/users");
+    render(<App />);
+    expect((await screen.findAllByText("新增用户")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("6,324 人").length).toBeGreaterThan(0);
+    expect(screen.getByText("新用户首周关键转化")).toBeInTheDocument();
+    expect(screen.getByText("新增用户趋势")).toBeInTheDocument();
+    expect(screen.getAllByText("新用户分批次首周表现").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("新增注册").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("D7留存").length).toBeGreaterThan(0);
+  });
+
   it("expands complete content catalogs and paginates route performance", async () => {
     window.history.pushState({}, "", "/content");
     render(<App />);
@@ -132,24 +170,46 @@ describe("MOVEVI dashboard", () => {
   it("renders the activity center and opens a metric definition", async () => {
     window.history.pushState({}, "", "/activities/lottery");
     render(<App />);
-    expect(await screen.findByText("兑换与抽奖趋势")).toBeInTheDocument();
-    expect(screen.getByText("轻盈之星整体数据")).toBeInTheDocument();
+    expect(await screen.findByText("勋章获得、兑换与抽奖趋势")).toBeInTheDocument();
+    expect(screen.getByText("勋章抽奖（全部期次）")).toBeInTheDocument();
+    expect(screen.queryByText("轻盈之星报表")).not.toBeInTheDocument();
+    expect(screen.queryByText("初夏漫游计划（207）")).not.toBeInTheDocument();
+    expect(screen.queryByText("每完成一条路线，一般获得 2–3 枚勋章。")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "查看活动规则" }));
+    const rulesDialog = await screen.findByRole("dialog", { name: "勋章抽奖规则" });
+    expect(rulesDialog).toHaveTextContent("每完成一条路线，一般获得 2–3 枚勋章。");
+    expect(rulesDialog).toHaveTextContent("每天晚上八点开奖");
+    expect(rulesDialog).toHaveTextContent("每期设置 200 个奖励，奖励总金额 100 元，抽完即止。");
+    expect(rulesDialog).toHaveTextContent("勋章永久有效");
+    await userEvent.click(within(rulesDialog).getByRole("button", { name: "关闭" }));
     expect(screen.getByRole("link", { name: "勋章抽奖" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "30天打卡" })).toBeInTheDocument();
     expect(screen.queryByLabelText("渠道")).not.toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText("选择勋章抽奖期次"), "209");
-    expect(await screen.findByText("跑遍全世界（209）")).toBeInTheDocument();
+    expect(await screen.findByText("勋章抽奖（209）")).toBeInTheDocument();
     expect(window.location.search).toContain("period=209");
     expect(screen.getAllByText("29 人").length).toBeGreaterThan(0);
+    expect(screen.getByText("开奖后 24 小时抽奖节奏")).toBeInTheDocument();
+    expect(screen.getByText("路线与勋章产出")).toBeInTheDocument();
+    const lotteryUserTable = screen.getByRole("table", { name: "用户抽奖列表" });
+    expect(within(lotteryUserTable).getAllByRole("row")).toHaveLength(11);
+    ["完成路线", "获得勋章", "兑换勋章", "抽奖次数", "中奖次数", "中奖金额"].forEach((column) => expect(within(lotteryUserTable).getByRole("button", { name: `${column}排序` })).toBeInTheDocument());
+    await userEvent.type(screen.getByRole("searchbox", { name: "查询抽奖用户" }), "MVU20910001");
+    expect(within(lotteryUserTable).getAllByRole("row")).toHaveLength(2);
+    expect(within(lotteryUserTable).getByText("MVU20910001")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "查看机会使用率口径说明" }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("实际抽奖次数 ÷ 生成抽奖机会数");
     await userEvent.click(screen.getByRole("button", { name: "关闭" }));
     await userEvent.click(screen.getByRole("link", { name: "30天打卡" }));
-    expect(await screen.findByText("D1–D30 完成深度")).toBeInTheDocument();
+    expect(await screen.findByText("D1–D30 路线完成深度")).toBeInTheDocument();
     await waitFor(() => expect(window.location.search).not.toContain("period="));
-    expect(screen.getByText("每日趋势明细")).toBeInTheDocument();
-    expect(screen.getByText("新增用户参与与完成转化")).toBeInTheDocument();
-    expect(screen.getByText("分配线路完成表现")).toBeInTheDocument();
+    expect(screen.getByText("30天打卡领红包")).toBeInTheDocument();
+    expect(screen.getByText("重点红包日完成与领取")).toBeInTheDocument();
+    expect(screen.getByText("新手红包任务")).toBeInTheDocument();
+    expect(screen.getByText("每日打卡趋势明细")).toBeInTheDocument();
+    expect(screen.getByText("新增用户计划转化")).toBeInTheDocument();
+    expect(screen.getByText("推荐路线完成表现")).toBeInTheDocument();
+    expect(screen.getByText("30天红包构成")).toBeInTheDocument();
   });
 
   it("maps dashboard drilldowns to the correct business modules", () => {

@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNaviga
 import {
   ArrowDownRight, ArrowRight, ArrowUpRight, Bell, Brain, CalendarBlank, CaretDown,
   ChartLineUp, CheckCircle, CurrencyCircleDollar, Database, DeviceMobile, Gauge, GlobeHemisphereWest,
-  Info, List, MagnifyingGlass, Question, SealCheck, ShoppingCart,
+  Info, List, Question, SealCheck, ShoppingCart,
   Trophy, TrendDown, TrendUp, UsersThree, WarningCircle, X,
 } from "@phosphor-icons/react";
 import { FaTiktok } from "react-icons/fa6";
@@ -18,6 +18,7 @@ import {
 import { DeepDiveSections, ExecutivePanorama } from "./Supplemental";
 import { ActivityCenter } from "./ActivityCenter";
 import { ContentCatalogDrawer } from "./ContentCatalogDrawer";
+import { GlobalSearch } from "./GlobalSearch";
 
 type NavItem = { path: string; label: string; icon: React.ComponentType<{ size?: number; weight?: "duotone" }>; children?: { path: string; label: string }[] };
 
@@ -36,12 +37,12 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "/dashboard": { title: "数据概览", subtitle: "从增长到使用，看见业务真正发生的地方" },
   "/sales": { title: "销售中心", subtitle: "渠道规模、质量和地区结构" },
   "/devices": { title: "设备中心", subtitle: "激活、连接、使用与故障全景" },
-  "/users": { title: "用户中心", subtitle: "活跃、留存和运动生命周期" },
+  "/users": { title: "用户中心", subtitle: "新增、转化、活跃、留存和运动生命周期" },
   "/content": { title: "内容中心", subtitle: "城市、路线与真实内容价值" },
   "/explore": { title: "探索中心", subtitle: "路线解锁与世界跑者成长" },
   "/activities": { title: "活动中心", subtitle: "活动经营数据" },
-  "/activities/lottery": { title: "勋章抽奖", subtitle: "轻盈之星分期与整体经营报表" },
-  "/activities/checkin": { title: "30天打卡", subtitle: "任务完成与奖励履约报表" },
+  "/activities/lottery": { title: "勋章抽奖", subtitle: "按期次查看勋章、抽奖节奏、奖池履约与用户明细" },
+  "/activities/checkin": { title: "30天打卡", subtitle: "每日推荐路线、红包领取与30天完成报表" },
   "/commercial": { title: "商业中心", subtitle: "订阅增长与长期用户价值" },
   "/insights": { title: "AI 洞察", subtitle: "将数据信号变成经营动作" },
 };
@@ -117,13 +118,13 @@ function Shell() {
           return <div className={children ? "nav-group" : "nav-group single"} key={path}><NavLink aria-label={label} title={label} to={pathWithFilters(path)} className={({ isActive }) => isActive || groupActive ? "nav-item active" : "nav-item"} onClick={() => setMenuOpen(false)}><Icon size={18} weight="duotone" /><span>{label}</span></NavLink>{children && <div className="sub-nav" aria-label={`${label}子导航`}>{children.map((child) => <NavLink key={child.path} aria-label={child.label} title={child.label} to={pathWithFilters(child.path)} className={({ isActive }) => isActive ? "sub-nav-item active" : "sub-nav-item"} onClick={() => setMenuOpen(false)}><i /><span>{child.label}</span></NavLink>)}</div>}</div>;
         })}
       </nav>
-      <div className="sidebar-foot"><div className="avatar">林</div><div><strong>林总</strong><span>管理员 · 演示环境</span></div></div>
+      <div className="sidebar-account" aria-label="当前用户 admin"><div className="account-avatar" aria-hidden="true">A</div><strong>admin</strong></div>
     </aside>
     {menuOpen && <button className="menu-scrim" aria-label="关闭导航" onClick={() => setMenuOpen(false)} />}
     <div className="workspace">
       <header className="topbar">
         <div className="title-wrap"><button className="mobile-menu" aria-label="打开导航" onClick={() => setMenuOpen(true)}><List /></button><div><h1>{meta.title}</h1><p>{meta.subtitle}</p></div></div>
-        <div className="top-actions"><span className="data-pill"><span className="live-dot" />演示数据 · 截止 09-02</span><button className="icon-button" aria-label="搜索"><MagnifyingGlass /></button><button className="icon-button notification" aria-label="通知"><Bell /><i /></button></div>
+        <div className="top-actions"><span className="data-pill"><span className="live-dot" />演示数据 · 截止 09-02</span><GlobalSearch onNavigate={navigateKeepingFilters} /><button className="icon-button notification" aria-label="通知"><Bell /><i /></button></div>
       </header>
       <main className="main-content">
         {!isActivityPage && <FilterBar filters={filters} onChange={changeFilter} onDateChange={changeDateRange} showChannel={isSalesPage} />}
@@ -389,7 +390,7 @@ function ModulePage({ moduleKey, filters, loader }: { moduleKey: ModuleKey; filt
   return <div className="module-page">
     <DataState status={result.status} />
     <section className="module-hero"><div><h2>{data.title}</h2><p>{data.description}</p></div><div className="quality-chip"><SealCheck weight="fill" /><div><b>数据可用</b><span>截止 {result.asOf}</span></div></div></section>
-    <section className="kpi-grid module-kpis">{data.metrics.map((item) => <KpiCard key={item.id} metric={item} catalog={moduleKey === "content" && (item.id === "cities" || item.id === "routes")} onClick={() => setSelectedMetric(item)} />)}</section>
+    <section className={moduleKey === "users" ? "kpi-grid module-kpis user-kpis" : "kpi-grid module-kpis"}>{data.metrics.map((item) => <KpiCard key={item.id} metric={item} catalog={moduleKey === "content" && (item.id === "cities" || item.id === "routes")} onClick={() => setSelectedMetric(item)} />)}</section>
     <section className="module-charts"><article className="panel chart-panel"><PanelHeader title={data.chartTitle} meta={`本期与上期环比 · 单位：${data.chartUnit}`} action={<ChartLineUp />} /><div className="chart-wrap" role="img" aria-label={`${data.chartTitle}，本期与上期对比趋势`}><ResponsiveContainer width="100%" height="100%"><AreaChart data={data.trend} margin={{ top: 12, right: 18, left: -18, bottom: 0 }}><defs><linearGradient id={`fill-${data.title}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d9488" stopOpacity={0.32} /><stop offset="100%" stopColor="#0d9488" stopOpacity={0.02} /></linearGradient></defs><CartesianGrid vertical={false} stroke="#e8edf3" /><XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} /><YAxis tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} /><Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #dce4ed", boxShadow: "0 10px 30px rgba(15,23,42,.1)" }} /><Area type="monotone" dataKey="value" name={`本期（${data.chartUnit}）`} stroke="#0d9488" strokeWidth={2.5} fill={`url(#fill-${data.title})`} /><Line type="monotone" dataKey="secondary" name={`上期（${data.chartUnit}）`} stroke="#94a3b8" strokeDasharray="4 4" dot={false} /></AreaChart></ResponsiveContainer></div></article>{moduleKey === "users" ? <UserTimeHeatmap /> : <article className="panel donut-panel"><PanelHeader title={data.distributionTitle} meta="当前筛选范围" action={<Info />} /><div className="donut-wrap"><div className="pie-area" role="img" aria-label={`${data.distributionTitle}环形图`}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data.distribution} dataKey="value" nameKey="name" innerRadius={48} outerRadius={72} paddingAngle={3}>{data.distribution.map((_, index) => <Cell key={index} fill={pieColors[index % pieColors.length]} />)}</Pie><Tooltip formatter={(value) => `${value}${data.distributionUnit ?? "%"}`} /></PieChart></ResponsiveContainer><div className="pie-center"><b>{moduleKey === "content" ? data.distribution.reduce((sum, item) => sum + item.value, 0) : data.distribution.length}</b><span>{moduleKey === "content" ? "座城市" : "类"}</span></div></div><ul className="legend-list">{data.distribution.map((item, index) => <li key={item.name}><i style={{ background: pieColors[index % pieColors.length] }} /><span>{item.name}</span><b>{item.value}{data.distributionUnit ?? "%"}</b></li>)}</ul></div></article>}</section>
     {moduleKey !== "devices" && moduleKey !== "content" && <section className="module-bottom"><ModuleDataTable data={data} moduleKey={moduleKey} /><aside className="signal-list">{data.notes.map((note) => <article key={note.title} className={`signal ${note.tone}`}><span>{note.tone === "red" ? <WarningCircle /> : note.tone === "teal" ? <TrendUp /> : <Info />}</span><div><h3>{note.title}</h3><p>{note.text}</p></div></article>)}<button className="back-button" onClick={() => navigate(`/dashboard?${new URLSearchParams(filters as unknown as Record<string, string>).toString()}`)}><ArrowRight />返回数据概览</button></aside></section>}
     <DeepDiveSections moduleKey={moduleKey} moduleData={data} />

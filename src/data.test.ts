@@ -50,12 +50,36 @@ describe("MockDataProvider", () => {
     const activity = await dataProvider.getActivityCenter(defaultFilters);
     expect(activity.data.lightStarPeriods).toHaveLength(4);
     expect(activity.data.lightStarPeriods[0]).toMatchObject({ id: "all", isAggregate: true });
-    expect(activity.data.lightStarPeriods.every((period) => period.metrics.length === 8)).toBe(true);
-    expect(activity.data.checkin.metrics).toHaveLength(11);
+    expect(activity.data.lightStarPeriods.every((period) => period.metrics.length === 12)).toBe(true);
+    expect(activity.data.checkin.name).toBe("30天打卡领红包");
+    expect(activity.data.checkin.metrics).toHaveLength(12);
     expect([...activity.data.lightStarPeriods.flatMap((period) => period.metrics), ...activity.data.checkin.metrics].every((item) => item.definition.length > 12)).toBe(true);
-    expect(activity.data.lightStarPeriods[1].metrics.map((item) => item.label)).toEqual(expect.arrayContaining(["兑换勋章", "实际抽奖", "奖池剩余"]));
+    expect(activity.data.lightStarPeriods[1].metrics.map((item) => item.label)).toEqual(expect.arrayContaining(["完成路线数", "获得勋章", "平均每路线勋章", "兑换勋章", "实际抽奖", "奖励发放", "奖励金额", "期末结转勋章"]));
+    expect(activity.data.lightStarPeriods.slice(1).every((period) => period.pool.rewardLimit === 200 && period.pool.budget === 100 && period.pool.rewardIssued <= 200 && period.pool.amountIssued <= 100)).toBe(true);
+    expect(activity.data.lightStarPeriods.slice(1).every((period) => (period.metrics.find((item) => item.label === "实际抽奖")?.raw ?? 201) <= 200)).toBe(true);
+    expect(activity.data.lightStarPeriods.every((period) => {
+      const average = period.metrics.find((item) => item.label === "平均每路线勋章")?.raw ?? 0;
+      return average >= 2 && average <= 3;
+    })).toBe(true);
+    expect(activity.data.lightStarPeriods.every((period) => period.carryoverBadges > 0)).toBe(true);
+    expect(activity.data.lightStarPeriods.every((period) => period.hourly.length === 24 && period.hourly.at(-1)?.time === "次日19:00后")).toBe(true);
+    expect(activity.data.lightStarPeriods.every((period) => period.hourly.reduce((sum, item) => sum + item.draws, 0) === (period.metrics.find((item) => item.label === "实际抽奖")?.raw ?? 0))).toBe(true);
+    expect(activity.data.lightStarPeriods.every((period) => period.userRows.length === period.flow[2].value)).toBe(true);
+    expect(activity.data.lightStarPeriods.every((period) => period.userRows.reduce((sum, item) => sum + item.draws, 0) === (period.metrics.find((item) => item.label === "实际抽奖")?.raw ?? 0))).toBe(true);
     expect(activity.data.checkin.dailyRows).toHaveLength(5);
     expect(activity.data.checkin.newUserTrend.length).toBeGreaterThan(5);
+    expect(activity.data.checkin.businessFlow.map((item) => item.label)).toEqual(["连接激活", "开启计划", "完成首日路线", "领取首日红包", "完成30天"]);
     expect(activity.data.checkin.funnel.at(-1)).toMatchObject({ name: "D30", value: 1062 });
+    expect(activity.data.checkin.rewardRows[0]).toEqual(expect.arrayContaining(["第1天", "¥0.38"]));
+    expect(activity.data.checkin.rewardRows.at(-1)).toEqual(expect.arrayContaining(["第30天", "¥1.28"]));
+    expect(activity.data.checkin.newbieRows.flat()).toEqual(expect.arrayContaining(["¥1.80", "¥2.80"]));
+    expect(activity.data.checkin.metrics.find((item) => item.label === "已领取金额")?.value).toBe("¥10,223.64");
+  });
+
+  it("adds new-user acquisition and first-week conversion data to the user center", async () => {
+    const users = await dataProvider.getUserCenter(defaultFilters);
+    expect(users.data.metrics[0]).toMatchObject({ id: "new-users", label: "新增用户", value: "6,324 人" });
+    expect(users.data.metrics).toHaveLength(5);
+    expect(users.definition).toContain("首次完成注册时间去重");
   });
 });

@@ -95,10 +95,27 @@ export type LightStarReport = {
   metrics: Metric[];
   flow: { label: string; value: number }[];
   unusedChances: number;
-  trend: { date: string; exchange: number; draw: number }[];
+  carryoverBadges: number;
+  trend: { date: string; earned: number; exchange: number; draw: number }[];
+  hourly: { time: string; draws: number }[];
+  pool: { rewardLimit: number; rewardIssued: number; budget: number; amountIssued: number; soldOutAt: string };
   frequency: { name: string; users: number }[];
   medalRows: (string | number)[][];
+  userRows: LotteryUserRow[];
   crossPeriod: { label: string; value: string; note: string }[];
+};
+
+export type LotteryUserRow = {
+  userId: string;
+  nickname: string;
+  phone: string;
+  routes: number;
+  badgesEarned: number;
+  badgesExchanged: number;
+  draws: number;
+  rewards: number;
+  rewardAmount: number;
+  lastDrawAt: string;
 };
 
 export type CheckinReport = {
@@ -106,12 +123,14 @@ export type CheckinReport = {
   period: string;
   asOf: string;
   metrics: Metric[];
+  businessFlow: { label: string; value: number; note: string }[];
   trend: { date: string; cumulative: number; participants: number; completed: number; rewarded: number }[];
   newUserTrend: { date: string; users: number; participants: number; completed: number }[];
   funnel: { name: string; value: number; rate: number }[];
   dailyRows: (string | number)[][];
   routeRows: (string | number)[][];
   rewardRows: (string | number)[][];
+  newbieRows: (string | number)[][];
 };
 
 export type ActivityCenterData = {
@@ -211,12 +230,20 @@ const metricDefinitions: Record<string, string> = {
   "活动拉新用户": "通过活动页面首次注册 MOVEVI App 的去重用户数。",
   "活动后D7留存": "完成或参与活动后第 7 日仍有有效运动记录的用户数 ÷ 活动参与用户数。",
   "识别参与用户": "所选活动期内发生报名、勋章兑换或抽奖任一行为的去重用户数。",
+  "完成路线数": "所选活动期内用户完成有效路线的总次数；每完成一条路线通常获得 2–3 枚勋章。",
+  "获得勋章": "所选活动期内因完成有效路线发放的勋章总数；勋章不会过期，可结转到下一期使用。",
+  "平均每路线勋章": "获得勋章数 ÷ 完成路线数，正常范围为每条路线 2–3 枚。",
+  "获得勋章用户": "所选活动期内至少完成一条有效路线并获得勋章的去重用户数。",
   "兑换勋章": "所选活动期内兑换为抽奖机会的勋章枚数；同一用户可兑换多枚。",
   "生成抽奖机会": "勋章兑换后生成的抽奖机会数；当前活动每枚勋章兑换 1 次机会。",
-  "实际抽奖": "所选活动期内已产生奖励日志的抽奖次数。",
+  "实际抽奖": "所选活动期每天 20:00 开奖后已产生奖励日志的抽奖次数；单期最多 200 次，奖池抽完即止。",
   "机会使用率": "实际抽奖次数 ÷ 生成抽奖机会数。",
+  "抽奖用户": "所选活动期内每天 20:00 开奖后至少完成 1 次抽奖的去重用户数。",
   "人均抽奖": "实际抽奖次数 ÷ 发生抽奖的去重用户数。",
   "现金奖励": "所选活动期内现金奖励日志金额之和，实物奖品不折算。",
+  "奖励发放": "已成功发放的奖励份数；每期配置 200 份，抽完即止。",
+  "奖励金额": "已成功发放的现金奖励金额；每期预算上限 100 元。",
+  "期末结转勋章": "期初可用勋章 + 本期获得勋章 - 本期兑换勋章；勋章永不过期，可在下一期继续兑换。",
   "奖池剩余": "配置奖池次数减去已履约抽奖次数；用户全局机会余额不计入。",
   "区间活跃人数": "活动最早日至统计截止日有有效 App 行为的去重用户数。",
   "参与用户": "活动内至少产生一条有效打卡任务记录的去重用户数。",
@@ -294,12 +321,12 @@ const modules: Record<string, ModuleData> = {
     notes: [{ title: "主要断点：激活后首跑", text: "16,263 台设备完成激活后 7 日内未产生首次运动。", tone: "red" }, { title: "固件升级建议", text: "v3.7.x 连接失败率是最新版本的 2.4 倍。", tone: "orange" }],
   },
   users: {
-    title: "用户中心", description: "围绕 MOVEVI App 的完成城市、完成路线、运动里程和运动时长理解用户。",
-    metrics: [metric("dau", "DAU", "7,842", 7842, "+5.7%", "日有效运动用户"), metric("route-users", "完成路线用户", "18,426", 18426, "+7.3%", "本月至少完成 1 条路线"), metric("distance", "运动里程", "286,400 km", 286400, "+8.9%", "有效运动里程合计"), metric("duration", "运动时长", "61,820 h", 61820, "+6.8%", "有效运动时长合计")],
+    title: "用户中心", description: "从新增注册、连接激活、首次运动到长期活跃，理解 MOVEVI App 用户增长与运动行为。",
+    metrics: [metric("new-users", "新增用户", "6,324 人", 6324, "+8.6%", "筛选区间内首次完成注册的去重用户"), metric("dau", "DAU", "7,842 人", 7842, "+5.7%", "当日至少完成1次有效运动的用户"), metric("route-users", "完成路线用户", "18,426 人", 18426, "+7.3%", "本月至少完成1条路线的用户"), metric("distance", "运动里程", "286,400 km", 286400, "+8.9%", "有效运动里程合计"), metric("duration", "运动时长", "61,820 h", 61820, "+6.8%", "有效运动时长合计")],
     trend: trend([18000, 20000, 22000, 21000, 24000, 23000, 26000, 27000, 29000]), chartTitle: "活跃用户与留存趋势", chartUnit: "人",
     distribution: [{ name: "00–03", value: 3 }, { name: "03–06", value: 4 }, { name: "06–09", value: 27 }, { name: "09–12", value: 7 }, { name: "12–15", value: 5 }, { name: "15–18", value: 7 }, { name: "18–21", value: 31 }, { name: "21–24", value: 16 }], distributionTitle: "运动时段分布",
     columns: ["频次分层", "用户数", "月均次数", "单次时长", "D30", "生命周期"], rows: [["高频跑者", "6,214", "14.2", "46 分钟", "42.6%", "习惯期"], ["稳定跑者", "11,870", "7.4", "38 分钟", "27.1%", "成长期"], ["低频跑者", "13,902", "2.6", "25 分钟", "9.8%", "尝试期"], ["沉默用户", "6,924", "0.4", "12 分钟", "1.6%", "流失期"]], sectionTitle: "用户频次与生命周期",
-    notes: [{ title: "18–21 点是黄金时段", text: "该时段贡献约 31% 的有效运动，周三达到 33%。", tone: "blue" }, { title: "D7–D14 下滑最快", text: "应在第 8 天前触发第二条路线和同城推荐。", tone: "orange" }],
+    notes: [{ title: "新用户首跑仍是断点", text: "新增用户中35.3%在注册后7日内完成首次运动，需强化连接后的首跑引导。", tone: "orange" }, { title: "18–21 点是黄金时段", text: "该时段贡献约31%的有效运动，适合触发新用户首跑提醒。", tone: "blue" }],
   },
   content: {
     title: "内容中心", description: "按大洲、城市、路线与景点管理 MOVEVI App 城市内容资产和完成进度。",
@@ -335,75 +362,143 @@ const modules: Record<string, ModuleData> = {
   },
 };
 
+const lotteryUserNames = ["林小跑", "城市漫游者", "海风向北", "清晨六点", "轨迹收藏家", "晚风慢跑", "一公里以后", "山海之间", "橙子汽水", "路灯下奔跑", "不赶时间", "周末探索家"];
+
+function buildLotteryUserRows(period: string, frequency: [number, number, number, number], totalDraws: number, totalExchanged: number, lastDrawAt: string): LotteryUserRow[] {
+  const drawCounts = frequency.flatMap((count, index) => Array.from({ length: count }, () => index + 1));
+  let remainingDraws = totalDraws - drawCounts.reduce((sum, value) => sum + value, 0);
+  let cursor = drawCounts.length - 1;
+  while (remainingDraws > 0 && drawCounts.length > 0) {
+    drawCounts[cursor] += 1;
+    remainingDraws -= 1;
+    cursor -= 1;
+    if (cursor < drawCounts.length - frequency[3]) cursor = drawCounts.length - 1;
+  }
+  const extraExchanges = Math.max(0, totalExchanged - totalDraws);
+  const baseExtra = Math.floor(extraExchanges / Math.max(1, drawCounts.length));
+  const extraRemainder = extraExchanges % Math.max(1, drawCounts.length);
+  return drawCounts.map((draws, index) => {
+    const routes = 1 + ((index * 5 + Number(period === "all" ? 6 : period)) % 9);
+    const badgesExchanged = draws + baseExtra + (index < extraRemainder ? 1 : 0);
+    const badgesEarned = Math.max(badgesExchanged, routes * 2 + ((index + 1) % 2));
+    const nickname = lotteryUserNames[index % lotteryUserNames.length];
+    return {
+      userId: `MVU${period === "all" ? "A" : period}${String(10001 + index).padStart(5, "0")}`,
+      nickname: `${nickname}${index >= lotteryUserNames.length ? String(Math.floor(index / lotteryUserNames.length) + 1).padStart(2, "0") : ""}`,
+      phone: `13${8 + (index % 2)}****${String(1210 + index).slice(-4)}`,
+      routes,
+      badgesEarned,
+      badgesExchanged,
+      draws,
+      rewards: draws,
+      rewardAmount: Number((draws * 0.5).toFixed(2)),
+      lastDrawAt,
+    };
+  });
+}
+
+const hourlyCycle = (first: number, second: number, third: number) => [
+  { time: "20:00", draws: first }, { time: "21:00", draws: second }, { time: "22:00", draws: third }, { time: "23:00", draws: 0 },
+  { time: "次日00:00", draws: 0 }, { time: "次日01:00", draws: 0 }, { time: "次日02:00", draws: 0 }, { time: "次日03:00", draws: 0 },
+  { time: "次日04:00", draws: 0 }, { time: "次日05:00", draws: 0 }, { time: "次日06:00", draws: 0 }, { time: "次日07:00", draws: 0 },
+  { time: "次日08:00", draws: 0 }, { time: "次日09:00", draws: 0 }, { time: "次日10:00", draws: 0 }, { time: "次日11:00", draws: 0 },
+  { time: "次日12:00", draws: 0 }, { time: "次日13:00", draws: 0 }, { time: "次日14:00", draws: 0 }, { time: "次日15:00", draws: 0 },
+  { time: "次日16:00", draws: 0 }, { time: "次日17:00", draws: 0 }, { time: "次日18:00", draws: 0 }, { time: "次日19:00后", draws: 0 },
+];
+
 const activityCenter: ActivityCenterData = {
   lightStarPeriods: [
     {
-      id: "all", label: "全部期次", isAggregate: true, name: "轻盈之星整体数据",
-      period: "2026-06-15 20:00 至 2026-10-02 20:00", asOf: "2026-09-03 16:59", poolUsage: 94.6,
+      id: "all", label: "全部期次", isAggregate: true, name: "勋章抽奖（全部期次）",
+      period: "2026-06-15 20:00 至 2026-10-02 20:00", asOf: "2026-09-03 16:59", poolUsage: 100,
       metrics: [
-        metric("star-participants-all", "识别参与用户", "508 人", 508, "+12.9%", "三期报名、兑换或抽奖用户跨期去重"),
-        metric("star-exchange-all", "兑换勋章", "4,070 枚", 4070, "+18.4%", "389 名去重用户完成兑换"),
-        metric("star-chances-all", "生成抽奖机会", "4,070 次", 4070, "+18.4%", "每枚勋章兑换 1 次机会"),
-        metric("star-draws-all", "实际抽奖", "3,026 次", 3026, "+16.8%", "356 名去重用户产生奖励日志"),
-        metric("star-use-all", "机会使用率", "74.3%", 74.3, "+1.7pp", "实际抽奖 ÷ 生成机会"),
-        metric("star-average-all", "人均抽奖", "8.50 次", 8.5, "+0.42", "按跨期去重抽奖用户计算"),
-        metric("star-cash-all", "现金奖励", "¥1,512.40", 1512.4, "+¥186.20", "三期现金奖励日志汇总"),
-        metric("star-pool-all", "奖池剩余", "174 次", 174, "-126 次", "各期剩余奖池合计", "negative"),
+        metric("star-routes-all", "完成路线数", "1,333 条", 1333, "+13.6%", "产生勋章的有效路线完成次数"),
+        metric("star-earned-all", "获得勋章", "3,334 枚", 3334, "+13.6%", "路线完成后发放，单条通常 2–3 枚"),
+        metric("star-route-average-all", "平均每路线勋章", "2.50 枚", 2.5, "+0.02", "正常范围 2–3 枚 / 条"),
+        metric("star-earners-all", "获得勋章用户", "508 人", 508, "+12.9%", "三期获得勋章用户跨期去重"),
+        metric("star-exchange-all", "兑换勋章", "1,644 枚", 1644, "+18.4%", "389 名去重用户完成兑换"),
+        metric("star-chances-all", "生成抽奖机会", "1,644 次", 1644, "+18.4%", "每枚勋章兑换 1 次机会"),
+        metric("star-draws-all", "实际抽奖", "600 次", 600, "持平", "3 期均达到单期 200 次上限"),
+        metric("star-use-all", "机会使用率", "36.5%", 36.5, "-5.8pp", "实际抽奖 ÷ 生成机会", "negative"),
+        metric("star-draw-users-all", "抽奖用户", "326 人", 326, "+8.7%", "三期实际抽奖用户跨期去重"),
+        metric("star-reward-all", "奖励发放", "600 个", 600, "持平", "3 期 × 每期 200 个"),
+        metric("star-amount-all", "奖励金额", "¥300.00", 300, "持平", "3 期 × 每期 ¥100"),
+        metric("star-carry-all", "期末结转勋章", "2,110 枚", 2110, "+80.4%", "未兑换勋章永不过期，自动结转"),
       ],
-      flow: [{ label: "识别参与", value: 508 }, { label: "兑换勋章", value: 389 }, { label: "实际抽奖", value: 356 }],
-      unusedChances: 1044,
-      trend: [{ date: "第207期", exchange: 2286, draw: 1874 }, { date: "第208期", exchange: 1286, draw: 952 }, { date: "第209期", exchange: 498, draw: 200 }],
-      frequency: [{ name: "1次", users: 38 }, { name: "2次", users: 29 }, { name: "3次", users: 46 }, { name: "4次以上", users: 243 }],
-      medalRows: [[1, "长安街绝代风华·上篇", "王府井", 286, 214, 286], [2, "巴黎浪漫漫步", "埃菲尔铁塔", 248, 196, 248], [3, "东京夜景轻跑", "东京塔", 226, 184, 226], [4, "杭州西湖十景", "断桥残雪", 198, 172, 198], [5, "艺术园区彩霓虹", "751D·Park", 176, 148, 176], [6, "牛街护国食味飘香", "牛街礼拜寺", 162, 135, 162]],
-      crossPeriod: [{ label: "纳入活动期", value: "3 期", note: "第207–209期" }, { label: "重复参与用户", value: "29 人", note: "跨期参与占比 5.7%" }, { label: "现金中奖人数", value: "356 人", note: "跨期用户去重" }, { label: "现金中奖金额", value: "¥1,512.40", note: "实物奖品不折算" }],
+      flow: [{ label: "获得勋章", value: 508 }, { label: "兑换勋章", value: 389 }, { label: "参与抽奖", value: 326 }],
+      unusedChances: 1044, carryoverBadges: 2110,
+      trend: [{ date: "第207期", earned: 1550, exchange: 612, draw: 200 }, { date: "第208期", earned: 1286, exchange: 534, draw: 200 }, { date: "第209期", earned: 498, exchange: 498, draw: 200 }],
+      hourly: hourlyCycle(546, 42, 12),
+      pool: { rewardLimit: 600, rewardIssued: 600, budget: 300, amountIssued: 300, soldOutAt: "3 / 3 期已抽完" },
+      frequency: [{ name: "1次", users: 212 }, { name: "2次", users: 72 }, { name: "3次", users: 30 }, { name: "4次以上", users: 12 }],
+      medalRows: [[1, "长安街绝代风华·上篇", 214, 535, "2.50", 286, 249], [2, "巴黎浪漫漫步", 196, 490, "2.50", 248, 242], [3, "东京夜景轻跑", 184, 460, "2.50", 226, 234], [4, "杭州西湖十景", 172, 430, "2.50", 198, 232], [5, "艺术园区彩霓虹", 148, 370, "2.50", 176, 194], [6, "牛街护国食味飘香", 135, 337, "2.50", 162, 175]],
+      userRows: buildLotteryUserRows("all", [212, 72, 30, 12], 600, 1644, "09-02 20:16"),
+      crossPeriod: [{ label: "纳入活动期", value: "3 期", note: "第207–209期" }, { label: "重复参与用户", value: "29 人", note: "跨期获得勋章" }, { label: "单期奖励配置", value: "200 个", note: "抽完即止" }, { label: "单期奖励预算", value: "¥100", note: "三期合计 ¥300" }, { label: "抽奖用户", value: "326 人", note: "跨期用户去重" }, { label: "下期可用勋章", value: "2,110 枚", note: "未兑换勋章自动结转" }],
     },
     {
-      id: "209", label: "第209期 · 进行中", name: "跑遍全世界（209）",
+      id: "209", label: "第209期 · 进行中", name: "勋章抽奖（209）",
       period: "2026-09-02 20:00 至 2026-10-02 20:00", asOf: "2026-09-03 16:59", poolUsage: 100,
-      metrics: [metric("star-participants-209", "识别参与用户", "29 人", 29, "+4 人", "报名、兑换或抽奖用户去重"), metric("star-exchange-209", "兑换勋章", "498 枚", 498, "+86 枚", "24 名用户完成兑换"), metric("star-chances-209", "生成抽奖机会", "498 次", 498, "+86 次", "每枚勋章兑换 1 次"), metric("star-draws-209", "实际抽奖", "200 次", 200, "+32 次", "22 名用户产生奖励日志"), metric("star-use-209", "机会使用率", "40.2%", 40.2, "+2.6pp", "抽奖次数 ÷ 生成机会"), metric("star-average-209", "人均抽奖", "9.09 次", 9.09, "+0.72", "按抽奖用户计算"), metric("star-cash-209", "现金奖励", "¥99.90", 99.9, "+¥18.40", "现金奖励日志汇总"), metric("star-pool-209", "奖池剩余", "0 次", 0, "已耗尽", "配置奖池 200 次", "negative")],
-      flow: [{ label: "识别参与", value: 29 }, { label: "兑换勋章", value: 24 }, { label: "实际抽奖", value: 22 }], unusedChances: 298,
-      trend: [{ date: "09-02", exchange: 386, draw: 154 }, { date: "09-03", exchange: 112, draw: 46 }],
+      metrics: [metric("star-routes-209", "完成路线数", "199 条", 199, "-61.3%", "产生勋章的有效路线完成次数", "negative"), metric("star-earned-209", "获得勋章", "498 枚", 498, "-61.3%", "路线完成后发放，单条通常 2–3 枚", "negative"), metric("star-route-average-209", "平均每路线勋章", "2.50 枚", 2.5, "持平", "正常范围 2–3 枚 / 条"), metric("star-earners-209", "获得勋章用户", "29 人", 29, "-84.4%", "本期至少获得一枚勋章", "negative"), metric("star-exchange-209", "兑换勋章", "498 枚", 498, "-6.7%", "24 名用户完成兑换", "negative"), metric("star-chances-209", "生成抽奖机会", "498 次", 498, "-6.7%", "每枚勋章兑换 1 次", "negative"), metric("star-draws-209", "实际抽奖", "200 次", 200, "持平", "22 名用户在 20:00 开奖后抽完奖池"), metric("star-use-209", "机会使用率", "40.2%", 40.2, "+2.7pp", "实际抽奖 ÷ 生成机会"), metric("star-draw-users-209", "抽奖用户", "22 人", 22, "-85.1%", "本期实际抽奖用户", "negative"), metric("star-reward-209", "奖励发放", "200 个", 200, "持平", "达到单期 200 个上限"), metric("star-amount-209", "奖励金额", "¥100.00", 100, "持平", "单期预算全部发放"), metric("star-carry-209", "期末结转勋章", "2,110 枚", 2110, "持平", "未兑换勋章下期继续使用")],
+      flow: [{ label: "获得勋章", value: 29 }, { label: "兑换勋章", value: 24 }, { label: "参与抽奖", value: 22 }], unusedChances: 298, carryoverBadges: 2110,
+      trend: [{ date: "09-02", earned: 386, exchange: 386, draw: 154 }, { date: "09-03", earned: 112, exchange: 112, draw: 46 }],
+      hourly: hourlyCycle(200, 0, 0),
+      pool: { rewardLimit: 200, rewardIssued: 200, budget: 100, amountIssued: 100, soldOutAt: "20:16" },
       frequency: [{ name: "1次", users: 2 }, { name: "2次", users: 1 }, { name: "3次", users: 3 }, { name: "4次以上", users: 16 }],
-      medalRows: [[1, "长安街绝代风华·上篇", "王府井", 4, 4, 4], [2, "长安街绝代风华·上篇", "东单", 4, 4, 4], [3, "长安街绝代风华·上篇", "建国门", 4, 4, 4], [4, "艺术园区彩霓虹", "751D·Park", 3, 3, 3], [5, "长安街绝代风华·下篇", "天安门", 3, 3, 3], [6, "牛街护国食味飘香", "牛街礼拜寺", 3, 3, 3]],
-      crossPeriod: [{ label: "所选活动期", value: "1 期", note: "第209期" }, { label: "重复参与用户", value: "0 人", note: "当前单期无需去重" }, { label: "现金中奖人数", value: "22 人", note: "仅统计现金奖励" }, { label: "现金中奖金额", value: "¥99.90", note: "实物奖品不折算" }],
+      medalRows: [[1, "长安街绝代风华·上篇", 38, 96, "2.53", 88, 8], [2, "艺术园区彩霓虹", 34, 84, "2.47", 76, 8], [3, "长安街绝代风华·下篇", 31, 78, "2.52", 72, 6], [4, "牛街护国食味飘香", 29, 72, "2.48", 68, 4], [5, "东京夜景轻跑", 27, 68, "2.52", 64, 4], [6, "巴黎浪漫漫步", 24, 60, "2.50", 56, 4]],
+      userRows: buildLotteryUserRows("209", [2, 1, 3, 16], 200, 498, "09-02 20:16"),
+      crossPeriod: [{ label: "所选活动期", value: "第209期", note: "进行中" }, { label: "开奖时间", value: "每日 20:00", note: "奖池抽完即止" }, { label: "奖励配置", value: "200 个", note: "已全部发放" }, { label: "奖励预算", value: "¥100", note: "已全部发放" }, { label: "抽奖用户", value: "22 人", note: "本期用户去重" }, { label: "下期可用勋章", value: "2,110 枚", note: "永不过期" }],
     },
     {
-      id: "208", label: "第208期 · 已结束", name: "盛夏城市探索（208）",
-      period: "2026-08-01 20:00 至 2026-09-01 20:00", asOf: "2026-09-01 23:59", poolUsage: 95.2,
-      metrics: [metric("star-participants-208", "识别参与用户", "186 人", 186, "+9.4%", "本期报名、兑换或抽奖用户去重"), metric("star-exchange-208", "兑换勋章", "1,286 枚", 1286, "+14.8%", "155 名用户完成兑换"), metric("star-chances-208", "生成抽奖机会", "1,286 次", 1286, "+14.8%", "每枚勋章兑换 1 次"), metric("star-draws-208", "实际抽奖", "952 次", 952, "+11.6%", "148 名用户产生奖励日志"), metric("star-use-208", "机会使用率", "74.0%", 74, "+1.2pp", "抽奖次数 ÷ 生成机会"), metric("star-average-208", "人均抽奖", "6.43 次", 6.43, "+0.36", "按抽奖用户计算"), metric("star-cash-208", "现金奖励", "¥476.00", 476, "+¥52.80", "现金奖励日志汇总"), metric("star-pool-208", "奖池剩余", "48 次", 48, "-18 次", "配置奖池 1,000 次", "negative")],
-      flow: [{ label: "识别参与", value: 186 }, { label: "兑换勋章", value: 155 }, { label: "实际抽奖", value: 148 }], unusedChances: 334,
-      trend: [{ date: "08-01", exchange: 168, draw: 96 }, { date: "08-08", exchange: 246, draw: 174 }, { date: "08-15", exchange: 312, draw: 238 }, { date: "08-22", exchange: 338, draw: 276 }, { date: "09-01", exchange: 222, draw: 168 }],
-      frequency: [{ name: "1次", users: 18 }, { name: "2次", users: 12 }, { name: "3次", users: 21 }, { name: "4次以上", users: 97 }],
-      medalRows: [[1, "巴黎浪漫漫步", "埃菲尔铁塔", 86, 68, 86], [2, "东京夜景轻跑", "东京塔", 74, 61, 74], [3, "杭州西湖十景", "断桥残雪", 68, 56, 68], [4, "上海外滩夜航", "外白渡桥", 61, 52, 61], [5, "成都锦城绿道", "东门市井", 58, 49, 58], [6, "长安街绝代风华", "天安门", 52, 46, 52]],
-      crossPeriod: [{ label: "所选活动期", value: "1 期", note: "第208期" }, { label: "参与用户", value: "186 人", note: "本期用户去重" }, { label: "现金中奖人数", value: "148 人", note: "仅统计现金奖励" }, { label: "现金中奖金额", value: "¥476.00", note: "实物奖品不折算" }],
+      id: "208", label: "第208期 · 已结束", name: "勋章抽奖（208）",
+      period: "2026-08-01 20:00 至 2026-09-01 20:00", asOf: "2026-09-01 23:59", poolUsage: 100,
+      metrics: [metric("star-routes-208", "完成路线数", "514 条", 514, "-17.1%", "产生勋章的有效路线完成次数", "negative"), metric("star-earned-208", "获得勋章", "1,286 枚", 1286, "-17.0%", "路线完成后发放，单条通常 2–3 枚", "negative"), metric("star-route-average-208", "平均每路线勋章", "2.50 枚", 2.5, "持平", "正常范围 2–3 枚 / 条"), metric("star-earners-208", "获得勋章用户", "186 人", 186, "-42.2%", "本期至少获得一枚勋章", "negative"), metric("star-exchange-208", "兑换勋章", "534 枚", 534, "-12.7%", "155 名用户完成兑换", "negative"), metric("star-chances-208", "生成抽奖机会", "534 次", 534, "-12.7%", "每枚勋章兑换 1 次", "negative"), metric("star-draws-208", "实际抽奖", "200 次", 200, "持平", "达到单期 200 次上限"), metric("star-use-208", "机会使用率", "37.5%", 37.5, "+4.8pp", "实际抽奖 ÷ 生成机会"), metric("star-draw-users-208", "抽奖用户", "148 人", 148, "-19.6%", "本期实际抽奖用户", "negative"), metric("star-reward-208", "奖励发放", "200 个", 200, "持平", "达到单期 200 个上限"), metric("star-amount-208", "奖励金额", "¥100.00", 100, "持平", "单期预算全部发放"), metric("star-carry-208", "期末结转勋章", "2,110 枚", 2110, "+55.4%", "未兑换勋章下期继续使用")],
+      flow: [{ label: "获得勋章", value: 186 }, { label: "兑换勋章", value: 155 }, { label: "参与抽奖", value: 148 }], unusedChances: 334, carryoverBadges: 2110,
+      trend: [{ date: "08-01", earned: 168, exchange: 84, draw: 32 }, { date: "08-08", earned: 246, exchange: 116, draw: 48 }, { date: "08-15", earned: 312, exchange: 132, draw: 52 }, { date: "08-22", earned: 338, exchange: 126, draw: 44 }, { date: "09-01", earned: 222, exchange: 76, draw: 24 }],
+      hourly: hourlyCycle(200, 0, 0),
+      pool: { rewardLimit: 200, rewardIssued: 200, budget: 100, amountIssued: 100, soldOutAt: "20:42" },
+      frequency: [{ name: "1次", users: 112 }, { name: "2次", users: 30 }, { name: "3次", users: 4 }, { name: "4次以上", users: 2 }],
+      medalRows: [[1, "巴黎浪漫漫步", 86, 216, "2.51", 96, 120], [2, "东京夜景轻跑", 74, 184, "2.49", 82, 102], [3, "杭州西湖十景", 68, 170, "2.50", 76, 94], [4, "上海外滩夜航", 61, 153, "2.51", 68, 85], [5, "成都锦城绿道", 58, 144, "2.48", 62, 82], [6, "长安街绝代风华", 52, 130, "2.50", 58, 72]],
+      userRows: buildLotteryUserRows("208", [112, 30, 4, 2], 200, 534, "09-01 20:42"),
+      crossPeriod: [{ label: "所选活动期", value: "第208期", note: "已结束" }, { label: "开奖时间", value: "每日 20:00", note: "奖池抽完即止" }, { label: "奖励配置", value: "200 个", note: "已全部发放" }, { label: "奖励预算", value: "¥100", note: "已全部发放" }, { label: "抽奖用户", value: "148 人", note: "本期用户去重" }, { label: "下期可用勋章", value: "2,110 枚", note: "永不过期" }],
     },
     {
-      id: "207", label: "第207期 · 已结束", name: "初夏漫游计划（207）",
-      period: "2026-06-15 20:00 至 2026-07-15 20:00", asOf: "2026-07-15 23:59", poolUsage: 93.7,
-      metrics: [metric("star-participants-207", "识别参与用户", "322 人", 322, "+16.2%", "本期报名、兑换或抽奖用户去重"), metric("star-exchange-207", "兑换勋章", "2,286 枚", 2286, "+21.5%", "244 名用户完成兑换"), metric("star-chances-207", "生成抽奖机会", "2,286 次", 2286, "+21.5%", "每枚勋章兑换 1 次"), metric("star-draws-207", "实际抽奖", "1,874 次", 1874, "+19.8%", "230 名用户产生奖励日志"), metric("star-use-207", "机会使用率", "82.0%", 82, "+2.4pp", "抽奖次数 ÷ 生成机会"), metric("star-average-207", "人均抽奖", "8.15 次", 8.15, "+0.61", "按抽奖用户计算"), metric("star-cash-207", "现金奖励", "¥936.50", 936.5, "+¥114.20", "现金奖励日志汇总"), metric("star-pool-207", "奖池剩余", "126 次", 126, "-74 次", "配置奖池 2,000 次", "negative")],
-      flow: [{ label: "识别参与", value: 322 }, { label: "兑换勋章", value: 244 }, { label: "实际抽奖", value: 230 }], unusedChances: 412,
-      trend: [{ date: "06-15", exchange: 286, draw: 214 }, { date: "06-22", exchange: 436, draw: 352 }, { date: "06-29", exchange: 512, draw: 426 }, { date: "07-06", exchange: 568, draw: 482 }, { date: "07-15", exchange: 484, draw: 400 }],
-      frequency: [{ name: "1次", users: 24 }, { name: "2次", users: 18 }, { name: "3次", users: 28 }, { name: "4次以上", users: 160 }],
-      medalRows: [[1, "长安街绝代风华·上篇", "王府井", 146, 108, 146], [2, "巴黎浪漫漫步", "凯旋门", 132, 101, 132], [3, "东京夜景轻跑", "浅草寺", 124, 96, 124], [4, "杭州西湖十景", "雷峰塔", 116, 92, 116], [5, "艺术园区彩霓虹", "751D·Park", 108, 86, 108], [6, "成都锦城绿道", "宽窄巷子", 96, 78, 96]],
-      crossPeriod: [{ label: "所选活动期", value: "1 期", note: "第207期" }, { label: "参与用户", value: "322 人", note: "本期用户去重" }, { label: "现金中奖人数", value: "230 人", note: "仅统计现金奖励" }, { label: "现金中奖金额", value: "¥936.50", note: "实物奖品不折算" }],
+      id: "207", label: "第207期 · 已结束", name: "勋章抽奖（207）",
+      period: "2026-06-15 20:00 至 2026-07-15 20:00", asOf: "2026-07-15 23:59", poolUsage: 100,
+      metrics: [metric("star-routes-207", "完成路线数", "620 条", 620, "+16.2%", "产生勋章的有效路线完成次数"), metric("star-earned-207", "获得勋章", "1,550 枚", 1550, "+16.5%", "路线完成后发放，单条通常 2–3 枚"), metric("star-route-average-207", "平均每路线勋章", "2.50 枚", 2.5, "+0.01", "正常范围 2–3 枚 / 条"), metric("star-earners-207", "获得勋章用户", "322 人", 322, "+16.2%", "本期至少获得一枚勋章"), metric("star-exchange-207", "兑换勋章", "612 枚", 612, "+21.5%", "244 名用户完成兑换"), metric("star-chances-207", "生成抽奖机会", "612 次", 612, "+21.5%", "每枚勋章兑换 1 次"), metric("star-draws-207", "实际抽奖", "200 次", 200, "持平", "达到单期 200 次上限"), metric("star-use-207", "机会使用率", "32.7%", 32.7, "-1.8pp", "实际抽奖 ÷ 生成机会", "negative"), metric("star-draw-users-207", "抽奖用户", "184 人", 184, "+12.2%", "本期实际抽奖用户"), metric("star-reward-207", "奖励发放", "200 个", 200, "持平", "达到单期 200 个上限"), metric("star-amount-207", "奖励金额", "¥100.00", 100, "持平", "单期预算全部发放"), metric("star-carry-207", "期末结转勋章", "1,358 枚", 1358, "+223.3%", "未兑换勋章下期继续使用")],
+      flow: [{ label: "获得勋章", value: 322 }, { label: "兑换勋章", value: 244 }, { label: "参与抽奖", value: 184 }], unusedChances: 412, carryoverBadges: 1358,
+      trend: [{ date: "06-15", earned: 210, exchange: 88, draw: 26 }, { date: "06-22", earned: 286, exchange: 126, draw: 42 }, { date: "06-29", earned: 344, exchange: 142, draw: 48 }, { date: "07-06", earned: 390, exchange: 154, draw: 52 }, { date: "07-15", earned: 320, exchange: 102, draw: 32 }],
+      hourly: hourlyCycle(146, 42, 12),
+      pool: { rewardLimit: 200, rewardIssued: 200, budget: 100, amountIssued: 100, soldOutAt: "22:18" },
+      frequency: [{ name: "1次", users: 172 }, { name: "2次", users: 8 }, { name: "3次", users: 4 }, { name: "4次以上", users: 0 }],
+      medalRows: [[1, "长安街绝代风华·上篇", 146, 365, "2.50", 146, 219], [2, "巴黎浪漫漫步", 132, 330, "2.50", 132, 198], [3, "东京夜景轻跑", 124, 310, "2.50", 124, 186], [4, "杭州西湖十景", 116, 290, "2.50", 108, 182], [5, "艺术园区彩霓虹", 108, 270, "2.50", 96, 174], [6, "成都锦城绿道", 96, 240, "2.50", 6, 234]],
+      userRows: buildLotteryUserRows("207", [172, 8, 4, 0], 200, 612, "07-15 22:18"),
+      crossPeriod: [{ label: "所选活动期", value: "第207期", note: "已结束" }, { label: "开奖时间", value: "每日 20:00", note: "奖池抽完即止" }, { label: "奖励配置", value: "200 个", note: "已全部发放" }, { label: "奖励预算", value: "¥100", note: "已全部发放" }, { label: "抽奖用户", value: "184 人", note: "本期用户去重" }, { label: "下期可用勋章", value: "1,358 枚", note: "永不过期" }],
     },
   ],
   checkin: {
-    name: "30天运动打卡返购机款",
-    period: "2026-08-01 00:00 至 2026-09-30 23:59",
+    name: "30天打卡领红包",
+    period: "统计区间 2026-08-01 至 2026-09-02 · 单用户计划周期 30 天",
     asOf: "2026-09-02 23:59",
     metrics: [
-      metric("checkin-active", "区间活跃人数", "38,910 人", 38910, "+6.1%", "活动最早日至统计截止日"),
-      metric("checkin-participants", "参与用户", "3,218 人", 3218, "+12.8%", "活动内用户去重"),
-      metric("checkin-rate", "活跃参与率", "8.3%", 8.3, "+0.5pp", "参与用户 ÷ 区间活跃用户"),
-      metric("checkin-due", "应打卡任务", "54,286 次", 54286, "+9.4%", "3,082 人已到任务日"),
-      metric("checkin-completed", "已完成任务", "42,680 次", 42680, "+11.2%", "按注册日期对应任务统计"),
-      metric("checkin-completion", "任务完成率", "78.6%", 78.6, "+1.8pp", "已完成 ÷ 应打卡任务"),
-      metric("checkin-overdue", "逾期未完成", "11,606 次", 11606, "-2.1%", "不含截止日当天", "positive"),
-      metric("checkin-full", "全程完成人数", "1,062 人", 1062, "+15.6%", "成熟用户完成率 34.5%"),
-      metric("checkin-pending", "待领取任务", "11,482 次", 11482, "-4.6%", "已完成但奖励未领取", "positive"),
-      metric("checkin-claimed", "已领取任务", "31,198 次", 31198, "+13.1%", "红包领取率 73.1%"),
-      metric("checkin-reward", "已领取金额", "¥62,408", 62408, "+13.4%", "奖励状态为已领取"),
+      metric("checkin-connected", "连接激活新用户", "8,642 人", 8642, "+7.4%", "首次连接并激活 MOVEVI 跑步机的新用户"),
+      metric("checkin-participants", "开启计划用户", "3,218 人", 3218, "+12.8%", "点击开启30天打卡的去重用户"),
+      metric("checkin-start-rate", "计划开启率", "37.2%", 37.2, "+1.8pp", "开启计划用户 ÷ 连接激活新用户"),
+      metric("checkin-d1", "首日路线完成人数", "2,964 人", 2964, "+10.6%", "开启计划后完成第1天推荐路线的用户"),
+      metric("checkin-due", "应完成路线", "54,286 次", 54286, "+9.4%", "截至统计日已经到达的每日推荐路线任务"),
+      metric("checkin-completed", "已完成路线", "42,680 次", 42680, "+11.2%", "完成当天对应推荐路线的有效次数"),
+      metric("checkin-completion", "路线完成率", "78.6%", 78.6, "+1.8pp", "已完成路线 ÷ 应完成路线"),
+      metric("checkin-full", "完成30天用户", "1,062 人", 1062, "+15.6%", "完成30条每日推荐路线的用户"),
+      metric("checkin-earned", "获得打卡红包", "42,680 个", 42680, "+11.2%", "每完成1天路线即获得1个固定金额红包"),
+      metric("checkin-claimed", "已领取红包", "31,198 个", 31198, "+13.1%", "用户已点击领取并进入钱包的红包"),
+      metric("checkin-claim-rate", "红包领取率", "73.1%", 73.1, "+1.2pp", "已领取红包 ÷ 获得打卡红包"),
+      metric("checkin-reward", "已领取金额", "¥10,223.64", 10223.64, "+13.4%", "仅统计30天打卡红包，不含新手红包"),
+    ],
+    businessFlow: [
+      { label: "连接激活", value: 8642, note: "活动可触达新用户" },
+      { label: "开启计划", value: 3218, note: "连接后开启30天计划" },
+      { label: "完成首日路线", value: 2964, note: "完成第1天推荐路线" },
+      { label: "领取首日红包", value: 2708, note: "红包进入我的钱包" },
+      { label: "完成30天", value: 1062, note: "完成30条每日路线" },
     ],
     trend: [
       { date: "08-01", cumulative: 482, participants: 482, completed: 356, rewarded: 214 },
@@ -418,23 +513,27 @@ const activityCenter: ActivityCenterData = {
     ],
     newUserTrend: [{ date: "08-01", users: 624, participants: 96, completed: 71 }, { date: "08-05", users: 702, participants: 118, completed: 86 }, { date: "08-09", users: 686, participants: 112, completed: 82 }, { date: "08-13", users: 748, participants: 128, completed: 96 }, { date: "08-17", users: 816, participants: 142, completed: 108 }, { date: "08-21", users: 784, participants: 136, completed: 104 }, { date: "08-25", users: 862, participants: 154, completed: 118 }, { date: "08-29", users: 908, participants: 168, completed: 126 }, { date: "09-02", users: 936, participants: 176, completed: 132 }],
     funnel: [
-      { name: "D1", value: 3218, rate: 100 }, { name: "D3", value: 2864, rate: 89.0 },
-      { name: "D7", value: 2432, rate: 75.6 }, { name: "D14", value: 1846, rate: 57.4 },
+      { name: "D1", value: 2964, rate: 92.1 }, { name: "D3", value: 2864, rate: 89.0 },
+      { name: "D7", value: 2432, rate: 75.6 }, { name: "D15", value: 1748, rate: 54.3 },
       { name: "D21", value: 1432, rate: 44.5 }, { name: "D30", value: 1062, rate: 33.0 },
     ],
-    dailyRows: [["08-25", "348", "1,562", "1,142", "2,716"], ["08-27", "326", "1,604", "1,176", "2,868"], ["08-29", "308", "1,698", "1,218", "3,024"], ["08-31", "252", "1,742", "1,286", "3,146"], ["09-02", "194", "1,816", "1,324", "3,218"]],
+    dailyRows: [["08-25", "348", "1,562", "1,562", "1,142", "2,716"], ["08-27", "326", "1,604", "1,604", "1,176", "2,868"], ["08-29", "308", "1,698", "1,698", "1,218", "3,024"], ["08-31", "252", "1,742", "1,742", "1,286", "3,146"], ["09-02", "194", "1,816", "1,816", "1,324", "3,218"]],
     routeRows: [
-      ["东京夜景轻跑", "886", "12,468", "10,286", "82.5%", "7,842", "20 分钟", "3.2 km"],
-      ["巴黎浪漫漫步", "742", "10,684", "8,214", "76.9%", "5,986", "25 分钟", "3.8 km"],
-      ["西湖晨光环线", "698", "9,842", "7,686", "78.1%", "5,602", "22 分钟", "3.5 km"],
-      ["长安街城市记忆", "612", "8,906", "6,494", "72.9%", "4,516", "30 分钟", "4.2 km"],
+      ["东京夜景轻跑", "12,468", "10,286", "82.5%", "7,842", "76.2%", "20 分钟", "3.2 km"],
+      ["巴黎浪漫漫步", "10,684", "8,214", "76.9%", "5,986", "72.9%", "25 分钟", "3.8 km"],
+      ["西湖晨光环线", "9,842", "7,686", "78.1%", "5,602", "72.9%", "22 分钟", "3.5 km"],
+      ["长安街城市记忆", "8,906", "6,494", "72.9%", "4,516", "69.5%", "30 分钟", "4.2 km"],
     ],
     rewardRows: [
-      ["08-25", "1,562", "1,142", "73.1%", "¥2,284", "¥1,986"],
-      ["08-27", "1,604", "1,176", "73.3%", "¥2,352", "¥2,046"],
-      ["08-29", "1,698", "1,218", "71.7%", "¥2,436", "¥2,128"],
-      ["08-31", "1,742", "1,286", "73.8%", "¥2,572", "¥2,246"],
-      ["09-02", "1,816", "1,324", "72.9%", "¥2,648", "¥2,316"],
+      ["第1天", "¥0.38", "3,218", "2,964", "2,708", "91.4%", "¥1,029.04"],
+      ["第7天", "¥0.68", "2,714", "2,432", "2,126", "87.4%", "¥1,445.68"],
+      ["第15天", "¥0.88", "2,136", "1,748", "1,462", "83.6%", "¥1,286.56"],
+      ["第21天", "¥1.08", "1,826", "1,432", "1,166", "81.4%", "¥1,259.28"],
+      ["第30天", "¥1.28", "1,308", "1,062", "846", "79.7%", "¥1,082.88"],
+    ],
+    newbieRows: [
+      ["首次连接并激活跑步机", "¥1.80", "8,642", "8,642", "7,986", "92.4%", "¥14,374.80"],
+      ["首次完成任意城市路线", "¥2.80", "8,642", "6,984", "6,216", "89.0%", "¥17,404.80"],
     ],
   },
 };
@@ -472,6 +571,7 @@ function formatScaledValue(value: string, raw: number) {
   const rounded = Math.round(raw);
   if (value.startsWith("¥")) return `¥${rounded.toLocaleString("zh-CN")}`;
   if (value.includes("台")) return `${rounded.toLocaleString("zh-CN")} 台`;
+  if (value.includes("人")) return `${rounded.toLocaleString("zh-CN")} 人`;
   if (/^[\d,]+$/.test(value)) return rounded.toLocaleString("zh-CN");
   return value;
 }
@@ -500,10 +600,10 @@ export class MockDataProvider implements DataProvider {
   async getExecutiveDashboard(filters: ReportFilters) { return result(filteredExecutive(filters), "老板经营视角：交易、激活、使用、留存与商业化统一链路", filters); }
   async getSalesCenter(filters: ReportFilters) { return result(filteredModule("sales", filters), "支付成功、退款完成和签收状态按订单事实表统计", filters); }
   async getDeviceCenter(filters: ReportFilters) { return result(filteredModule("devices", filters), "一台物理设备按唯一 SN 统计，激活以首次联网成功为准", filters); }
-  async getUserCenter(filters: ReportFilters) { return result(filteredModule("users", filters), "有效运动指里程不少于 1 公里且时长不少于 8 分钟", filters); }
+  async getUserCenter(filters: ReportFilters) { return result(filteredModule("users", filters), "新增用户按首次完成注册时间去重；有效运动指里程不少于1公里且时长不少于8分钟", filters); }
   async getContentCenter(filters: ReportFilters) { return result(filteredModule("content", filters), "有效路线需通过内容审核且近 90 天有启动记录", filters); }
   async getExploreCenter(filters: ReportFilters) { return result(filteredModule("explore", filters), "探索深度为月活用户完成的不同有效路线数", filters); }
-  async getActivityCenter(filters: ReportFilters) { return result(activityCenter, "轻盈之星按活动期统计勋章兑换与抽奖；30天打卡按注册日期对应任务统计完成与领取", filters); }
+  async getActivityCenter(filters: ReportFilters) { return result(activityCenter, "勋章抽奖按活动期统计；30天打卡按开启计划后的任务日统计推荐路线完成、红包获得与钱包领取，新手红包独立计算", filters); }
   async getCommercialCenter(filters: ReportFilters) { return result(filteredModule("commercial", filters), "订阅数据为模拟经营场景，不代表真实财务结果", filters); }
   async getAiInsights(filters: ReportFilters) { return result(filteredModule("insights", filters), "基于统一模拟数据的固定阈值规则，不调用外部 AI 服务", filters); }
 }
