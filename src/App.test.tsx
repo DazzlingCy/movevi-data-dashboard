@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { describe, expect, it } from "vitest";
-import { App } from "./App";
+import { App, getBusinessModuleTarget } from "./App";
 
 describe("MOVEVI dashboard", () => {
   it("renders all routes and opens a keyboard-operable funnel drilldown", async () => {
@@ -95,5 +95,38 @@ describe("MOVEVI dashboard", () => {
     expect(screen.getByText("每日趋势明细")).toBeInTheDocument();
     expect(screen.getByText("新增用户参与与完成转化")).toBeInTheDocument();
     expect(screen.getByText("分配线路完成表现")).toBeInTheDocument();
+  });
+
+  it("maps dashboard drilldowns to the correct business modules", () => {
+    expect(getBusinessModuleTarget("sales")).toEqual({ path: "/sales", label: "进入销售中心" });
+    expect(getBusinessModuleTarget("sales-volume")).toEqual({ path: "/sales", label: "进入销售中心" });
+    expect(getBusinessModuleTarget("activation")).toEqual({ path: "/devices", label: "进入设备中心" });
+    expect(getBusinessModuleTarget("activate")).toEqual({ path: "/devices", label: "进入设备中心" });
+    expect(getBusinessModuleTarget("register")).toEqual({ path: "/users", label: "进入用户中心" });
+    expect(getBusinessModuleTarget("first-run")).toEqual({ path: "/users", label: "进入用户中心" });
+    expect(getBusinessModuleTarget("retention")).toEqual({ path: "/users", label: "进入用户中心" });
+    expect(getBusinessModuleTarget("active-users")).toEqual({ path: "/users", label: "进入用户中心" });
+    expect(getBusinessModuleTarget("first-route")).toEqual({ path: "/content", label: "进入内容中心" });
+    expect(getBusinessModuleTarget("second-route")).toEqual({ path: "/explore", label: "进入探索中心" });
+    expect(getBusinessModuleTarget("continuous-route")).toEqual({ path: "/explore", label: "进入探索中心" });
+    expect(getBusinessModuleTarget("unlock-city")).toEqual({ path: "/explore", label: "进入探索中心" });
+    expect(getBusinessModuleTarget("explore-cities")).toEqual({ path: "/explore", label: "进入探索中心" });
+    expect(getBusinessModuleTarget("subscription")).toEqual({ path: "/commercial", label: "进入商业中心" });
+    expect(getBusinessModuleTarget("long-retention")).toEqual({ path: "/users", label: "进入用户中心" });
+    expect(getBusinessModuleTarget("unknown")).toBeUndefined();
+  });
+
+  it("only shows a business jump when the selected metric has a useful target", async () => {
+    window.history.pushState({}, "", "/dashboard");
+    render(<App />);
+    const firstRun = (await screen.findAllByRole("button", { name: /首次运动/ }))[0];
+    await userEvent.click(firstRun);
+    await userEvent.click(screen.getByRole("button", { name: "进入用户中心" }));
+    expect(await screen.findByText("用户频次与生命周期")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "查看DAU口径说明" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("自然日内至少产生 1 次有效运动");
+    expect(screen.queryByRole("button", { name: /进入.+中心/ })).not.toBeInTheDocument();
   });
 });

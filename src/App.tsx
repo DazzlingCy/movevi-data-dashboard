@@ -228,9 +228,34 @@ function StatusTag({ status }: { status: ChannelPerformance["status"] }) {
   return <span className={`status-tag ${status}`}>{status === "健康" && <CheckCircle weight="fill" />}{status === "异常" && <WarningCircle weight="fill" />}{status}</span>;
 }
 
-function DetailDrawer({ stage, metric, onClose, navigate, currentPath }: { stage: FunnelStage | null; metric: Metric | null; onClose: () => void; navigate: (path: string) => void; currentPath?: string }) {
+type BusinessModuleTarget = { path: string; label: string };
+
+const businessModuleTargets: Record<string, BusinessModuleTarget> = {
+  sales: { path: "/sales", label: "进入销售中心" },
+  "sales-volume": { path: "/sales", label: "进入销售中心" },
+  activation: { path: "/devices", label: "进入设备中心" },
+  retention: { path: "/users", label: "进入用户中心" },
+  "active-users": { path: "/users", label: "进入用户中心" },
+  register: { path: "/users", label: "进入用户中心" },
+  activate: { path: "/devices", label: "进入设备中心" },
+  "first-run": { path: "/users", label: "进入用户中心" },
+  "first-route": { path: "/content", label: "进入内容中心" },
+  "second-route": { path: "/explore", label: "进入探索中心" },
+  "continuous-route": { path: "/explore", label: "进入探索中心" },
+  "unlock-city": { path: "/explore", label: "进入探索中心" },
+  "explore-cities": { path: "/explore", label: "进入探索中心" },
+  subscription: { path: "/commercial", label: "进入商业中心" },
+  "long-retention": { path: "/users", label: "进入用户中心" },
+};
+
+export function getBusinessModuleTarget(id: string | undefined) {
+  return id ? businessModuleTargets[id] : undefined;
+}
+
+function DetailDrawer({ stage, metric, onClose, navigate }: { stage: FunnelStage | null; metric: Metric | null; onClose: () => void; navigate?: (path: string) => void }) {
   const title = stage?.name ?? metric?.label ?? "指标详情";
-  return <div className="drawer-layer"><button className="drawer-scrim" aria-label="关闭详情" onClick={onClose} /><aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title"><button className="drawer-close" onClick={onClose} aria-label="关闭"><X /></button><div className="drawer-head"><span>指标下钻</span><h2 id="drawer-title">{title}</h2><p>{stage?.definition ?? metric?.definition}</p></div>{stage ? <><div className="drawer-number"><span>当前数量</span><strong>{formatNumber(stage.value)}</strong><small>上一步转化 {stage.rate}%</small></div><div className="definition-card"><Info /><div><b>统计范围</b><p>该阶段按全部销售来源汇总，不按渠道拆分。</p></div></div></> : <><div className="drawer-number"><span>当前值</span><strong>{metric?.value}</strong><small>{metric?.change} · 较上期</small></div><div className="definition-card"><Info /><div><b>口径说明</b><p>{metric?.definition}</p></div></div></>}<button className="primary-button full" onClick={() => { navigate(currentPath ?? (stage?.id === "subscription" ? "/commercial" : stage?.id?.includes("route") ? "/explore" : "/devices")); onClose(); }}>进入对应业务模块 <ArrowRight /></button></aside></div>;
+  const target = getBusinessModuleTarget(stage?.id ?? metric?.id);
+  return <div className="drawer-layer"><button className="drawer-scrim" aria-label="关闭详情" onClick={onClose} /><aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title"><button className="drawer-close" onClick={onClose} aria-label="关闭"><X /></button><div className="drawer-head"><span>指标下钻</span><h2 id="drawer-title">{title}</h2><p>{stage?.definition ?? metric?.definition}</p></div>{stage ? <><div className="drawer-number"><span>当前数量</span><strong>{formatNumber(stage.value)}</strong><small>上一步转化 {stage.rate}%</small></div><div className="definition-card"><Info /><div><b>统计范围</b><p>该阶段按全部销售来源汇总，不按渠道拆分。</p></div></div></> : <><div className="drawer-number"><span>当前值</span><strong>{metric?.value}</strong><small>{metric?.change} · 较上期</small></div><div className="definition-card"><Info /><div><b>口径说明</b><p>{metric?.definition}</p></div></div></>}{target && navigate && <button className="primary-button full" onClick={() => { navigate(target.path); onClose(); }}>{target.label} <ArrowRight /></button>}</aside></div>;
 }
 
 type ModuleKey = "sales" | "devices" | "users" | "content" | "explore" | "commercial" | "insights";
@@ -251,7 +276,7 @@ function ModulePage({ moduleKey, filters, loader }: { moduleKey: ModuleKey; filt
     <section className="module-bottom"><article className="panel data-table-panel"><PanelHeader title={data.sectionTitle} meta="支持横向滚动查看" action={<Database />} /><div className="table-scroll"><table><thead><tr>{data.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{data.rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div></article><aside className="signal-list">{data.notes.map((note) => <article key={note.title} className={`signal ${note.tone}`}><span>{note.tone === "red" ? <WarningCircle /> : note.tone === "teal" ? <TrendUp /> : <Info />}</span><div><h3>{note.title}</h3><p>{note.text}</p></div></article>)}<button className="back-button" onClick={() => navigate(`/dashboard?${new URLSearchParams(filters as unknown as Record<string, string>).toString()}`)}><ArrowRight />返回数据概览</button></aside></section>
     <DeepDiveSections moduleKey={moduleKey} />
     <footer className="module-foot"><span>{result.definition}</span><span>{result.source}</span></footer>
-    {selectedMetric && <DetailDrawer stage={null} metric={selectedMetric} onClose={() => setSelectedMetric(null)} navigate={(path) => navigate(`${path}?${new URLSearchParams(filters as unknown as Record<string, string>).toString()}`)} currentPath={`/${moduleKey}`} />}
+    {selectedMetric && <DetailDrawer stage={null} metric={selectedMetric} onClose={() => setSelectedMetric(null)} />}
   </div>;
 }
 
