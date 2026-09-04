@@ -46,7 +46,7 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
 };
 
 function Logo() {
-  return <div className="brand" aria-label="MOVEVI 数据后台"><img className="brand-logo" src="/movevi-logo.png" alt="" /><span><b>MOVEVI</b><small>WORLD RUNNING</small></span></div>;
+  return <div className="brand" aria-label="MOVEVI 数据后台"><img className="brand-logo" src={`${import.meta.env.BASE_URL}movevi-logo.png`} alt="" /><span><b>MOVEVI</b><small>WORLD RUNNING</small></span></div>;
 }
 
 function Shell() {
@@ -255,4 +255,6 @@ function ModulePage({ moduleKey, filters, loader }: { moduleKey: ModuleKey; filt
   </div>;
 }
 
-export function App() { return <BrowserRouter><Shell /></BrowserRouter>; }
+const routerBase = import.meta.env.BASE_URL === "/" ? "/" : import.meta.env.BASE_URL.replace(/\/$/, "");
+
+export function App() { return <BrowserRouter basename={routerBase}><Shell /></BrowserRouter>; }
