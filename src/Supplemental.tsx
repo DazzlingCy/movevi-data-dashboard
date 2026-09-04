@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  ArrowRight, ChartLineUp, CheckCircle, CirclesThreePlus, Clock, Compass, DeviceMobile,
+  ArrowRight, CaretDown, ChartLineUp, CheckCircle, CirclesThreePlus, Clock, Compass, DeviceMobile,
   Info, MagnifyingGlass, MapPin, Medal, Path, Sparkle, Tag, TrendDown, UsersThree, X,
 } from "@phosphor-icons/react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -36,6 +36,25 @@ function MiniFunnel({ data, refundLast = false }: { data: readonly (readonly [st
 
 function SimpleTable({ columns, rows, caption }: { columns: string[]; rows: (string | number)[][]; caption: string }) {
   return <div className="table-scroll deep-table"><table><caption className="sr-only">{caption}</caption><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>;
+}
+
+type ContentSort = { index: number; direction: "asc" | "desc" } | null;
+
+function numericCellValue(cell: string | number) {
+  const matched = String(cell).replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
+  return matched ? Number(matched[0]) : 0;
+}
+
+function sortContentRows(rows: (string | number)[][], sort: ContentSort) {
+  if (!sort) return rows;
+  return [...rows].sort((left, right) => (numericCellValue(left[sort.index]) - numericCellValue(right[sort.index])) * (sort.direction === "asc" ? 1 : -1));
+}
+
+function SortableContentTable({ columns, rows, caption, sortableColumns }: { columns: string[]; rows: (string | number)[][]; caption: string; sortableColumns: number[] }) {
+  const [sort, setSort] = useState<ContentSort>(null);
+  const toggleSort = (index: number) => setSort((current) => current?.index === index ? { index, direction: current.direction === "desc" ? "asc" : "desc" } : { index, direction: "desc" });
+  const sortedRows = sortContentRows(rows, sort);
+  return <div className="table-scroll deep-table"><table><caption className="sr-only">{caption}</caption><thead><tr>{columns.map((column,index) => sortableColumns.includes(index) ? <th key={column} aria-sort={sort?.index === index ? (sort.direction === "desc" ? "descending" : "ascending") : "none"}><button type="button" className={sort?.index === index ? `sort content-sort active ${sort.direction}` : "sort content-sort"} aria-label={`${column}排序`} title={`点击按${column}${sort?.index === index && sort.direction === "desc" ? "升序" : "降序"}排列`} onClick={() => toggleSort(index)}>{column}<CaretDown /></button></th> : <th key={column}>{column}</th>)}</tr></thead><tbody>{sortedRows.map((row, index) => <tr key={`${row[0]}-${index}`}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>;
 }
 
 function LineVisual({ data, label, unit = "%" }: { data: { name: string; value: number }[]; label: string; unit?: string }) {
@@ -81,20 +100,24 @@ function UserDeepDive() {
 function ContentRoutePerformanceTable({ data }: { data: ModuleData }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<ContentSort>(null);
   const pageSize = 10;
   const normalizedQuery = query.trim().toLocaleLowerCase("zh-CN");
   const filteredRows = normalizedQuery ? data.rows.filter((row) => String(row[0]).toLocaleLowerCase("zh-CN").includes(normalizedQuery)) : data.rows;
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const sortedRows = sortContentRows(filteredRows, sort);
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * pageSize;
-  const visibleRows = filteredRows.slice(start, start + pageSize);
-  return <section className="deep-panel content-route-performance"><SectionHead title="路线" desc="按路线查看启动、完播、复跑、时长与综合热度。" /><div className="device-record-toolbar"><label className="table-search"><MagnifyingGlass /><span className="sr-only">搜索路线名称</span><input type="search" aria-label="搜索路线名称" placeholder="输入路线名称搜索" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} /></label><span>每页显示 10 条</span></div><div className="table-scroll deep-table"><table aria-label="城市与路线综合热度"><thead><tr>{data.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{visibleRows.length ? visibleRows.map((row) => <tr key={String(row[0])}>{row.map((cell,index) => <td key={index}>{cell}</td>)}</tr>) : <tr><td className="empty-table-cell" colSpan={data.columns.length}>未找到匹配路线，请更换路线名称</td></tr>}</tbody></table></div><footer className="table-pagination"><span>共 {filteredRows.length} 条路线 · 第 {currentPage} / {totalPages} 页{filteredRows.length > 0 && ` · 当前 ${start + 1}–${Math.min(start + pageSize, filteredRows.length)} 条`}</span><div><button type="button" onClick={() => setPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}><ArrowRight />上一页</button><button type="button" onClick={() => setPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>下一页<ArrowRight /></button></div></footer></section>;
+  const visibleRows = sortedRows.slice(start, start + pageSize);
+  const sortableColumns = [3, 4, 5, 6, 7];
+  const toggleSort = (index: number) => { setSort((current) => current?.index === index ? { index, direction: current.direction === "desc" ? "asc" : "desc" } : { index, direction: "desc" }); setPage(1); };
+  return <section className="deep-panel content-route-performance"><SectionHead title="路线" desc="按路线查看经营数据；点击高亮表头可切换升序、降序。" /><div className="device-record-toolbar"><label className="table-search"><MagnifyingGlass /><span className="sr-only">搜索路线名称</span><input type="search" aria-label="搜索路线名称" placeholder="输入路线名称搜索" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} /></label><span>每页显示 10 条</span></div><div className="table-scroll deep-table"><table aria-label="城市与路线综合热度"><thead><tr>{data.columns.map((column,index) => sortableColumns.includes(index) ? <th key={column} aria-sort={sort?.index === index ? (sort.direction === "desc" ? "descending" : "ascending") : "none"}><button type="button" className={sort?.index === index ? `sort content-sort active ${sort.direction}` : "sort content-sort"} aria-label={`${column}排序`} title={`点击按${column}${sort?.index === index && sort.direction === "desc" ? "升序" : "降序"}排列`} onClick={() => toggleSort(index)}>{column}<CaretDown /></button></th> : <th key={column}>{column}</th>)}</tr></thead><tbody>{visibleRows.length ? visibleRows.map((row) => <tr key={String(row[0])}>{row.map((cell,index) => <td key={index}>{cell}</td>)}</tr>) : <tr><td className="empty-table-cell" colSpan={data.columns.length}>未找到匹配路线，请更换路线名称</td></tr>}</tbody></table></div><footer className="table-pagination"><span>共 {filteredRows.length} 条路线 · 第 {currentPage} / {totalPages} 页{filteredRows.length > 0 && ` · 当前 ${start + 1}–${Math.min(start + pageSize, filteredRows.length)} 条`}</span><div><button type="button" onClick={() => setPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}><ArrowRight />上一页</button><button type="button" onClick={() => setPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>下一页<ArrowRight /></button></div></footer></section>;
 }
 
 function ContentDeepDive({ data }: { data: ModuleData }) {
   const regionRows = [["亚洲","32","480","2,826","14,280","61.8%"],["欧洲","21","315","1,768","6,240","57.6%"],["非洲","7","105","486","1,420","38.4%"],["北美洲","12","180","892","3,680","49.7%"],["南美洲","6","90","368","986","34.8%"],["大洋洲","8","78","502","1,216","42.6%"]];
   const cityRows = [["杭州","亚洲","15","24","3,197","79.1%","96"],["东京","亚洲","15","31","3,086","82.7%","95"],["巴黎","欧洲","15","28","2,940","80.4%","93"],["北京","亚洲","15","15","2,512","68.5%","92"],["上海","亚洲","15","83","3,842","82.4%","91"],["纽约","北美洲","15","36","2,174","77.4%","89"],["新加坡","亚洲","15","32","1,986","83.1%","88"],["伦敦","欧洲","15","26","2,068","76.8%","87"],["悉尼","大洋洲","15","24","1,842","78.5%","86"],["西安","亚洲","15","66","1,764","72.6%","84"]];
-  return <><section className="deep-panel"><SectionHead title="区域" desc="按大洲汇总上线城市、有效路线、景点与用户完成进度。" /><SimpleTable caption="大洲内容数据" columns={["大洲","上线城市","有效路线","城市景点","城市完成人数","平均完成进度"]} rows={regionRows} /></section><section className="deep-panel"><SectionHead title="城市" desc="按城市比较路线供给、景点数量、完成人数和内容热度。" /><SimpleTable caption="城市内容数据" columns={["城市","所属大洲","有效路线","城市景点","完成人数","平均完播率","综合热度"]} rows={cityRows} /></section><ContentRoutePerformanceTable data={data} /><section className="deep-panel"><SectionHead title="20 分钟路线退出点" desc="第 8 分钟开始明显掉速，应回看镜头、强度和讲解内容。" /><LineVisual data={exitCurve} label="仍在路线" /></section><div className="deep-grid three"><section className="deep-panel compact"><h3>复跑原因</h3><div className="reason-list">{[["喜欢风景",28],["想解锁下一条",21],["喜欢训练",17],["想减肥",13],["喜欢音乐",9],["完成任务",7],["其他",5]].map(([name,value])=><div key={name}><span>{name}</span><progress max="30" value={value}/><b>{value}%</b></div>)}</div></section><section className="deep-panel compact"><h3>景点热度</h3><SimpleTable caption="景点热度" columns={["景点","停留","讲解播放","相关完赛"]} rows={[["埃菲尔铁塔","84秒","68%","82%"],["浅草寺","72秒","61%","78%"],["外滩","91秒","74%","86%"],["布鲁克林桥","66秒","57%","69%"]]} /></section><section className="deep-panel compact"><h3>内容标签体系</h3><div className="tag-cloud">{["东京","城市街道","夜景","慢跑","低强度","浪漫","夜晚","夏季","建筑","海边","历史建筑","自然风光","20分钟"].map((item)=><span key={item}><Tag />{item}</span>)}</div><p className="deep-note">25–35 岁女性更偏好“夜景 + 海边 + 轻运动 + 20分钟”。</p></section></div></>;
+  return <><section className="deep-panel"><SectionHead title="区域" desc="按大洲汇总上线城市、有效路线、景点与用户完成进度；点击高亮表头排序。" /><SortableContentTable caption="大洲内容数据" columns={["大洲","上线城市","有效路线","城市景点","城市完成人数","平均完成度"]} rows={regionRows} sortableColumns={[4,5]} /></section><section className="deep-panel"><SectionHead title="城市" desc="按城市比较路线供给、景点数量、完成人数和内容热度；点击高亮表头排序。" /><SortableContentTable caption="城市内容数据" columns={["城市","所属大洲","有效路线","城市景点","完成人数","平均完播率","综合热度"]} rows={cityRows} sortableColumns={[4,5,6]} /></section><ContentRoutePerformanceTable data={data} /><section className="deep-panel"><SectionHead title="20 分钟路线退出点" desc="第 8 分钟开始明显掉速，应回看镜头、强度和讲解内容。" /><LineVisual data={exitCurve} label="仍在路线" /></section><div className="deep-grid three"><section className="deep-panel compact"><h3>复跑原因</h3><div className="reason-list">{[["喜欢风景",28],["想解锁下一条",21],["喜欢训练",17],["想减肥",13],["喜欢音乐",9],["完成任务",7],["其他",5]].map(([name,value])=><div key={name}><span>{name}</span><progress max="30" value={value}/><b>{value}%</b></div>)}</div></section><section className="deep-panel compact"><h3>景点热度</h3><SimpleTable caption="景点热度" columns={["景点","停留","讲解播放","相关完赛"]} rows={[["埃菲尔铁塔","84秒","68%","82%"],["浅草寺","72秒","61%","78%"],["外滩","91秒","74%","86%"],["布鲁克林桥","66秒","57%","69%"]]} /></section><section className="deep-panel compact"><h3>内容标签体系</h3><div className="tag-cloud">{["东京","城市街道","夜景","慢跑","低强度","浪漫","夜晚","夏季","建筑","海边","历史建筑","自然风光","20分钟"].map((item)=><span key={item}><Tag />{item}</span>)}</div><p className="deep-note">25–35 岁女性更偏好“夜景 + 海边 + 轻运动 + 20分钟”。</p></section></div></>;
 }
 
 function ExploreDeepDive() {
