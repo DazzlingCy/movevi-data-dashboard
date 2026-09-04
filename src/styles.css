@@ -148,3 +148,42 @@ th{font-size:12px;font-weight:600}td{font-size:13px}.sort{font-size:12px}.status
 .table-pagination button svg{width:13px;height:13px}
 .table-pagination button:first-child svg{transform:rotate(180deg)}
 @media(max-width:900px){.device-record-toolbar{align-items:flex-start;flex-direction:column}.table-search{width:min(290px,80vw)}.table-pagination{align-items:flex-start;flex-direction:column}.table-pagination>div{align-self:flex-end}}
+
+/* Ant-style report date range picker. */
+.filter-bar{position:relative;overflow:visible}
+.range-picker{position:relative;flex:0 0 auto}
+.range-trigger{height:32px;min-width:266px;padding:0 10px;display:grid;grid-template-columns:16px 82px 14px 82px 14px;align-items:center;gap:6px;border:1px solid #d9d9d9;border-radius:6px;background:#fff;color:#29394e;font-size:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.range-trigger:hover{border-color:#4096ff}
+.range-trigger.active{border-color:#1677ff;box-shadow:0 0 0 2px rgba(5,145,255,.1)}
+.range-trigger>svg{width:14px;height:14px;color:#7a8797}
+.range-trigger>svg:first-child{width:16px;height:16px;color:#59697d}
+.range-trigger>svg:nth-of-type(2){color:#98a3b1}
+.range-trigger>svg:last-child{justify-self:end;width:12px;height:12px;transition:transform .15s}
+.range-trigger.active>svg:last-child{transform:rotate(180deg)}
+.range-trigger>span{text-align:left;white-space:nowrap}
+.range-popover{position:absolute;z-index:90;left:0;top:calc(100% + 8px);width:590px;display:grid;grid-template-columns:170px minmax(0,1fr);overflow:hidden;border:1px solid #e5e8eb;border-radius:8px;background:#fff;box-shadow:0 12px 40px rgba(15,23,42,.16);animation:range-popover-in .16s ease-out}
+@keyframes range-popover-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.range-presets{padding:10px 8px;border-right:1px solid #f0f0f0;background:#fafafa}
+.range-presets>strong{display:block;padding:4px 9px 8px;color:#69778a;font-size:12px;font-weight:600}
+.range-presets>button{width:100%;min-height:36px;padding:5px 9px;display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;border-radius:5px;background:transparent;color:#2d3b50;font-size:12px;text-align:left;cursor:pointer}
+.range-presets>button:hover{background:#f0f5ff;color:#1677ff}
+.range-presets>button.selected{background:#e6f4ff;color:#1677ff;font-weight:600}
+.range-presets>button>span{color:#98a3b2;font-size:10px;font-weight:400;white-space:nowrap}
+.range-custom{min-width:0;padding:16px 18px 12px}
+.range-custom>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px;border-bottom:1px solid #f0f0f0}
+.range-custom>header>strong{color:#202d40;font-size:14px}
+.range-custom>header>span{color:#8c8c8c;font-size:11px;white-space:nowrap}
+.range-fields{min-height:116px;display:grid;grid-template-columns:1fr 18px 1fr;align-items:center;gap:10px}
+.range-fields>svg{width:16px;height:16px;color:#a3adba}
+.filter-bar .range-fields label{display:block;min-width:0}
+.filter-bar .range-fields label>span{position:static;width:auto;height:auto;display:block;margin-bottom:7px;overflow:visible;clip:auto;color:#68768a;font-size:12px}
+.range-fields input{width:100%;height:36px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;background:#fff;color:#27364a;font-size:12px;outline:0;transition:border-color .15s,box-shadow .15s}
+.range-fields input:hover{border-color:#4096ff}
+.range-fields input:focus{border-color:#1677ff;box-shadow:0 0 0 2px rgba(5,145,255,.1)}
+.range-error{min-height:20px;margin:-6px 0 6px;color:#ff4d4f;font-size:11px}
+.range-custom>footer{padding-top:10px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #f0f0f0}
+.range-custom>footer button{height:32px;padding:0 15px;border:1px solid #d9d9d9;border-radius:6px;background:#fff;color:#344257;font-size:12px;cursor:pointer}
+.range-custom>footer button:hover{border-color:#4096ff;color:#1677ff}
+.range-custom>footer .range-confirm{border-color:#1677ff;background:#1677ff;color:#fff}
+.range-custom>footer .range-confirm:hover{border-color:#4096ff;background:#4096ff;color:#fff}
+@media(max-width:760px){.range-trigger{min-width:254px;grid-template-columns:16px 76px 14px 76px 12px}.range-popover{position:fixed;left:16px;right:16px;top:88px;width:auto;max-height:calc(100vh - 112px);grid-template-columns:1fr;overflow-y:auto}.range-presets{display:grid;grid-template-columns:repeat(2,1fr);border-right:0;border-bottom:1px solid #f0f0f0}.range-presets>strong{grid-column:1/-1}.range-custom>header{align-items:flex-start;flex-direction:column}.range-fields{grid-template-columns:1fr}.range-fields>svg{justify-self:center;transform:rotate(90deg)}}

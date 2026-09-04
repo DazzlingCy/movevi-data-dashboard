@@ -130,6 +130,20 @@ describe("MOVEVI dashboard", () => {
     expect(screen.queryByRole("button", { name: /进入.+中心/ })).not.toBeInTheDocument();
   });
 
+  it("opens an accessible date range popover and applies quick ranges", async () => {
+    window.history.pushState({}, "", "/dashboard");
+    render(<App />);
+    const trigger = await screen.findByRole("button", { name: /选择日期范围，当前 2026\/08\/01 至 2026\/09\/02/ });
+    await userEvent.click(trigger);
+    const dialog = screen.getByRole("dialog", { name: "日期范围筛选" });
+    ["数据截止日", "近 7 天", "近 30 天", "近 90 天", "本周", "本月", "上月", "今年至今"].forEach((label) => expect(within(dialog).getByRole("button", { name: new RegExp(`^${label}`) })).toBeInTheDocument());
+    await userEvent.click(within(dialog).getByRole("button", { name: /^近 7 天/ }));
+    await waitFor(() => expect(window.location.search).toContain("from=2026-08-27"));
+    expect(window.location.search).not.toContain("to=");
+    expect(screen.queryByRole("dialog", { name: "日期范围筛选" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /选择日期范围，当前 2026\/08\/27 至 2026\/09\/02/ })).toBeInTheDocument();
+  });
+
   it("shows ten device records per page and supports paging and search", async () => {
     window.history.pushState({}, "", "/devices");
     render(<App />);

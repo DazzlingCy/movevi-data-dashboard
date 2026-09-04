@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowDownRight, ArrowRight, ArrowUpRight, Bell, Brain, CaretDown,
+  ArrowDownRight, ArrowRight, ArrowUpRight, Bell, Brain, CalendarBlank, CaretDown,
   ChartLineUp, CheckCircle, CurrencyCircleDollar, Database, DeviceMobile, Gauge, GlobeHemisphereWest,
   Info, List, MagnifyingGlass, Question, SealCheck, ShoppingCart,
   Trophy, TrendDown, TrendUp, UsersThree, WarningCircle, X,
@@ -89,6 +89,14 @@ function Shell() {
     setSearchParams(next, { replace: true });
   };
 
+  const changeDateRange = (from: string, to: string) => {
+    const next = new URLSearchParams(searchParamsRef.current);
+    if (from === defaultFilters.from) next.delete("from"); else next.set("from", from);
+    if (to === defaultFilters.to) next.delete("to"); else next.set("to", to);
+    searchParamsRef.current = next;
+    setSearchParams(next, { replace: true });
+  };
+
   const pathWithFilters = (path: string) => {
     const next = new URLSearchParams(searchParams);
     if (path !== "/sales") next.delete("channel");
@@ -117,7 +125,7 @@ function Shell() {
         <div className="top-actions"><span className="data-pill"><span className="live-dot" />演示数据 · 截止 09-02</span><button className="icon-button" aria-label="搜索"><MagnifyingGlass /></button><button className="icon-button notification" aria-label="通知"><Bell /><i /></button></div>
       </header>
       <main className="main-content">
-        {!isActivityPage && <FilterBar filters={filters} onChange={changeFilter} showChannel={isSalesPage} />}
+        {!isActivityPage && <FilterBar filters={filters} onChange={changeFilter} onDateChange={changeDateRange} showChannel={isSalesPage} />}
         <Routes>
           <Route path="/dashboard" element={<Dashboard filters={filters} navigate={navigateKeepingFilters} />} />
           <Route path="/sales" element={<ModulePage moduleKey="sales" filters={filters} loader={dataProvider.getSalesCenter.bind(dataProvider)} />} />
@@ -137,14 +145,86 @@ function Shell() {
   </div>;
 }
 
-function FilterBar({ filters, onChange, showChannel }: { filters: ReportFilters; onChange: (key: keyof ReportFilters, value: string) => void; showChannel: boolean }) {
-  const resetKeys: (keyof ReportFilters)[] = showChannel ? ["from", "to", "channel", "product", "region"] : ["from", "to", "product", "region"];
+const maxReportDate = "2026-09-02";
+const datePresets = [
+  { label: "数据截止日", from: "2026-09-02", to: "2026-09-02" },
+  { label: "近 7 天", from: "2026-08-27", to: "2026-09-02" },
+  { label: "近 30 天", from: "2026-08-04", to: "2026-09-02" },
+  { label: "近 90 天", from: "2026-06-05", to: "2026-09-02" },
+  { label: "本周", from: "2026-08-31", to: "2026-09-02" },
+  { label: "本月", from: "2026-09-01", to: "2026-09-02" },
+  { label: "上月", from: "2026-08-01", to: "2026-08-31" },
+  { label: "今年至今", from: "2026-01-01", to: "2026-09-02" },
+];
+
+function formatDisplayDate(value: string) {
+  return value.replaceAll("-", "/");
+}
+
+function DateRangePicker({ from, to, onChange }: { from: string; to: string; onChange: (from: string, to: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [draftFrom, setDraftFrom] = useState(from);
+  const [draftTo, setDraftTo] = useState(to);
+  const [error, setError] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  const openPicker = () => {
+    setDraftFrom(from);
+    setDraftTo(to);
+    setError("");
+    setOpen((current) => !current);
+  };
+  const closePicker = () => {
+    setOpen(false);
+    setError("");
+    triggerRef.current?.focus();
+  };
+  const applyRange = (nextFrom: string, nextTo: string) => {
+    if (!nextFrom || !nextTo) return setError("请选择完整的开始和结束日期");
+    if (nextFrom > nextTo) return setError("开始日期不能晚于结束日期");
+    if (nextTo > maxReportDate) return setError("完整数据仅更新至 2026/09/02");
+    onChange(nextFrom, nextTo);
+    setOpen(false);
+    setError("");
+    triggerRef.current?.focus();
+  };
+
+  return <div className="range-picker" ref={rootRef}>
+    <button ref={triggerRef} type="button" className={open ? "range-trigger active" : "range-trigger"} aria-haspopup="dialog" aria-expanded={open} aria-label={`选择日期范围，当前 ${formatDisplayDate(from)} 至 ${formatDisplayDate(to)}`} onClick={openPicker}><CalendarBlank /><span>{formatDisplayDate(from)}</span><ArrowRight /><span>{formatDisplayDate(to)}</span><CaretDown /></button>
+    {open && <div className="range-popover" role="dialog" aria-label="日期范围筛选">
+      <aside className="range-presets"><strong>快捷时间</strong>{datePresets.map((preset) => <button type="button" key={preset.label} className={from === preset.from && to === preset.to ? "selected" : ""} onClick={() => applyRange(preset.from, preset.to)}>{preset.label}<span>{formatDisplayDate(preset.from) === formatDisplayDate(preset.to) ? formatDisplayDate(preset.to).slice(5) : `${formatDisplayDate(preset.from).slice(5)} – ${formatDisplayDate(preset.to).slice(5)}`}</span></button>)}</aside>
+      <section className="range-custom"><header><strong>自定义日期范围</strong><span>完整数据截止 2026/09/02</span></header><div className="range-fields"><label><span>开始日期</span><input aria-label="自定义开始日期" type="date" value={draftFrom} max={maxReportDate} onChange={(event) => { setDraftFrom(event.target.value); setError(""); }} /></label><ArrowRight /><label><span>结束日期</span><input aria-label="自定义结束日期" type="date" value={draftTo} max={maxReportDate} onChange={(event) => { setDraftTo(event.target.value); setError(""); }} /></label></div>{error && <p className="range-error" role="alert">{error}</p>}<footer><button type="button" onClick={closePicker}>取消</button><button type="button" className="range-confirm" onClick={() => applyRange(draftFrom, draftTo)}>确定</button></footer></section>
+    </div>}
+  </div>;
+}
+
+function FilterBar({ filters, onChange, onDateChange, showChannel }: { filters: ReportFilters; onChange: (key: keyof ReportFilters, value: string) => void; onDateChange: (from: string, to: string) => void; showChannel: boolean }) {
   return <section className="filter-bar" aria-label="报表筛选">
-    <div className="date-range"><label><span>开始日期</span><input aria-label="开始日期" type="date" value={filters.from} onChange={(e) => onChange("from", e.target.value)} /></label><ArrowRight size={14} /><label><span>结束日期</span><input aria-label="结束日期" type="date" value={filters.to} max="2026-09-02" onChange={(e) => onChange("to", e.target.value)} /></label></div>
+    <DateRangePicker from={filters.from} to={filters.to} onChange={onDateChange} />
     {showChannel && <FilterSelect label="渠道" value={filters.channel} options={["全部渠道", "抖音", "天猫", "京东", "拼多多"]} onChange={(v) => onChange("channel", v)} />}
     <FilterSelect label="型号" value={filters.product} options={["全部型号", "TS2", "TS2PRO", "TS3", "TS3PRO"]} onChange={(v) => onChange("product", v)} />
     <FilterSelect label="地区" value={filters.region} options={["全国", "华东", "华南", "华北", "西部"]} onChange={(v) => onChange("region", v)} />
-    <button className="reset-button" onClick={() => resetKeys.forEach((key) => onChange(key, defaultFilters[key]))}>重置</button>
+    <button className="reset-button" onClick={() => { onDateChange(defaultFilters.from, defaultFilters.to); if (showChannel) onChange("channel", defaultFilters.channel); onChange("product", defaultFilters.product); onChange("region", defaultFilters.region); }}>重置</button>
   </section>;
 }
 
