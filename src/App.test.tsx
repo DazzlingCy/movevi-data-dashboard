@@ -232,6 +232,11 @@ describe("MOVEVI dashboard", () => {
     unmount();
     window.history.pushState({}, "", "/users");
     render(<App />);
+    expect(await screen.findByText("运动里程")).toBeInTheDocument();
+    expect(screen.getByText("运动时长")).toBeInTheDocument();
+    expect(screen.queryByText("月运动里程")).not.toBeInTheDocument();
+    expect(screen.queryByText("月运动时长")).not.toBeInTheDocument();
+    expect(screen.getByText("本期与上期环比 · 单位：人")).toBeInTheDocument();
     expect(await screen.findByRole("img", { name: /星期与三小时时段运动分布热力图/ })).toBeInTheDocument();
     expect(screen.getByTitle("周三 18–21：33%")).toBeInTheDocument();
     ["00–03", "03–06", "06–09", "09–12", "12–15", "15–18", "18–21", "21–24"].forEach((time) => expect(screen.getByText(time)).toBeInTheDocument());
