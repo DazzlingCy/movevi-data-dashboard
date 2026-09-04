@@ -355,15 +355,19 @@ const lifecycleDefinitions: Record<string, string> = {
 };
 
 const userTimeHeatmap = [
-  { label: "晨间 05–09", values: [32, 34, 33, 35, 34, 36, 37] },
-  { label: "日间 09–18", values: [20, 19, 18, 18, 17, 19, 20] },
-  { label: "晚间 18–22", values: [40, 40, 42, 40, 41, 38, 36] },
-  { label: "深夜 22–05", values: [8, 7, 7, 7, 8, 7, 7] },
+  { label: "00–03", values: [3, 3, 2, 2, 3, 3, 3] },
+  { label: "03–06", values: [5, 4, 5, 5, 5, 4, 4] },
+  { label: "06–09", values: [24, 27, 26, 28, 26, 29, 30] },
+  { label: "09–12", values: [7, 7, 6, 6, 6, 7, 8] },
+  { label: "12–15", values: [5, 5, 4, 4, 4, 5, 5] },
+  { label: "15–18", values: [8, 7, 8, 8, 7, 7, 7] },
+  { label: "18–21", values: [31, 31, 33, 31, 32, 29, 27] },
+  { label: "21–24", values: [17, 16, 16, 16, 17, 16, 16] },
 ];
 
 function UserTimeHeatmap() {
   const days = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-  return <article className="panel donut-panel user-time-panel"><PanelHeader title="运动时段热力" meta="星期 × 时段 · 单位：占比" action={<Info />} /><div className="user-time-heatmap" role="img" aria-label="星期与运动时段分布热力图，晚间运动占比最高"><div className="user-time-grid"><span />{days.map((day) => <b key={day}>{day}</b>)}{userTimeHeatmap.flatMap((row) => [<strong key={row.label}>{row.label}</strong>, ...row.values.map((value, index) => <i key={`${row.label}-${days[index]}`} title={`${days[index]} ${row.label}：${value}%`} style={{ backgroundColor: `rgba(13, 148, 136, ${0.12 + value / 55})` }}>{value}</i>)])}</div><div className="heat-legend"><span>占比较低</span><i /><i /><i /><i /><span>占比较高</span></div></div></article>;
+  return <article className="panel donut-panel user-time-panel"><PanelHeader title="运动时段热力" meta="星期 × 3小时时段 · 单位：占比" action={<Info />} /><div className="user-time-heatmap" role="img" aria-label="星期与三小时时段运动分布热力图，18点至21点运动占比最高"><div className="user-time-grid"><span />{days.map((day) => <b key={day}>{day}</b>)}{userTimeHeatmap.flatMap((row) => [<strong key={row.label}>{row.label}</strong>, ...row.values.map((value, index) => <i key={`${row.label}-${days[index]}`} title={`${days[index]} ${row.label}：${value}%`} style={{ backgroundColor: `rgba(13, 148, 136, ${0.12 + value / 45})` }}>{value}</i>)])}</div><div className="heat-legend"><span>占比较低</span><i /><i /><i /><i /><span>占比较高</span></div></div></article>;
 }
 
 function ModuleDataTable({ data, moduleKey }: { data: ModuleData; moduleKey: ModuleKey }) {

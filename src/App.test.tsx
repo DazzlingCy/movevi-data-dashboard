@@ -177,8 +177,9 @@ describe("MOVEVI dashboard", () => {
     unmount();
     window.history.pushState({}, "", "/users");
     render(<App />);
-    expect(await screen.findByRole("img", { name: /星期与运动时段分布热力图/ })).toBeInTheDocument();
-    expect(screen.getByTitle("周三 晚间 18–22：42%")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: /星期与三小时时段运动分布热力图/ })).toBeInTheDocument();
+    expect(screen.getByTitle("周三 18–21：33%")).toBeInTheDocument();
+    ["00–03", "03–06", "06–09", "09–12", "12–15", "15–18", "18–21", "21–24"].forEach((time) => expect(screen.getByText(time)).toBeInTheDocument());
     expect(screen.getByText("近 30 日有效运动 ≥ 8 次")).toBeInTheDocument();
     expect(screen.getByText("连续 3 个月保持活跃")).toBeInTheDocument();
     expect(screen.getByLabelText("用户画像主要特征")).toBeInTheDocument();

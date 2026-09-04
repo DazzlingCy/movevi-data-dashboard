@@ -293,9 +293,9 @@ const modules: Record<string, ModuleData> = {
     title: "用户中心", description: "围绕 MOVEVI App 的完成城市、完成路线、运动里程和运动时长理解用户。",
     metrics: [metric("dau", "DAU", "7,842", 7842, "+5.7%", "日有效运动用户"), metric("route-users", "完成路线用户", "18,426", 18426, "+7.3%", "本月至少完成 1 条路线"), metric("distance", "月运动里程", "286,400 km", 286400, "+8.9%", "有效运动里程合计"), metric("duration", "月运动时长", "61,820 h", 61820, "+6.8%", "有效运动时长合计")],
     trend: trend([18, 20, 22, 21, 24, 23, 26, 27, 29]), chartTitle: "活跃用户与留存趋势", chartUnit: "千人",
-    distribution: [{ name: "晨跑 05–09", value: 34 }, { name: "日间 09–18", value: 18 }, { name: "晚间 18–22", value: 41 }, { name: "深夜 22–05", value: 7 }], distributionTitle: "运动时段分布",
+    distribution: [{ name: "00–03", value: 3 }, { name: "03–06", value: 4 }, { name: "06–09", value: 27 }, { name: "09–12", value: 7 }, { name: "12–15", value: 5 }, { name: "15–18", value: 7 }, { name: "18–21", value: 31 }, { name: "21–24", value: 16 }], distributionTitle: "运动时段分布",
     columns: ["频次分层", "用户数", "月均次数", "单次时长", "D30", "生命周期"], rows: [["高频跑者", "6,214", "14.2", "46 分钟", "42.6%", "习惯期"], ["稳定跑者", "11,870", "7.4", "38 分钟", "27.1%", "成长期"], ["低频跑者", "13,902", "2.6", "25 分钟", "9.8%", "尝试期"], ["沉默用户", "6,924", "0.4", "12 分钟", "1.6%", "流失期"]], sectionTitle: "用户频次与生命周期",
-    notes: [{ title: "晚间是黄金时段", text: "18–22 点贡献 41% 的有效运动，完赛率也最高。", tone: "blue" }, { title: "D7–D14 下滑最快", text: "应在第 8 天前触发第二条路线和同城推荐。", tone: "orange" }],
+    notes: [{ title: "18–21 点是黄金时段", text: "该时段贡献约 31% 的有效运动，周三达到 33%。", tone: "blue" }, { title: "D7–D14 下滑最快", text: "应在第 8 天前触发第二条路线和同城推荐。", tone: "orange" }],
   },
   content: {
     title: "内容中心", description: "按大洲、城市、路线与景点管理 MOVEVI App 城市内容资产和完成进度。",
