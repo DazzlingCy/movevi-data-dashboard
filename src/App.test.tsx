@@ -1,0 +1,99 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { axe } from "vitest-axe";
+import { describe, expect, it } from "vitest";
+import { App } from "./App";
+
+describe("MOVEVI dashboard", () => {
+  it("renders all routes and opens a keyboard-operable funnel drilldown", async () => {
+    window.history.pushState({}, "", "/dashboard");
+    render(<App />);
+    expect(await screen.findByText("本月运动用户")).toBeInTheDocument();
+    expect(screen.queryByText("AI 经营判断")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "跑遍全球" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "内容中心" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "探索中心" })).toBeInTheDocument();
+    const stage = (await screen.findAllByRole("button", { name: /首次运动/ }))[0];
+    stage.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(await screen.findByRole("dialog")).toHaveTextContent("设备激活后 7 日内产生首个有效运动记录");
+    await userEvent.click(screen.getByRole("button", { name: "关闭" }));
+    await userEvent.click(screen.getByRole("link", { name: /设备中心/ }));
+    expect(await screen.findByText("一机一档（演示）")).toBeInTheDocument();
+  });
+
+  it("keeps the channel filter exclusive to sales", async () => {
+    window.history.pushState({}, "", "/sales?stage=%E6%96%B0%E5%AE%A2");
+    render(<App />);
+    await screen.findByText("完整销售漏斗");
+    expect(screen.queryByLabelText("用户阶段")).not.toBeInTheDocument();
+    await waitFor(() => expect(window.location.search).not.toContain("stage="));
+    await userEvent.selectOptions(screen.getByLabelText("渠道"), "天猫");
+    await userEvent.selectOptions(screen.getByLabelText("型号"), "TS3PRO");
+    await waitFor(() => expect(window.location.search).toContain("channel=%E5%A4%A9%E7%8C%AB"));
+    expect(window.location.search).toContain("product=TS3PRO");
+    await userEvent.click(screen.getByRole("link", { name: "设备中心" }));
+    expect(await screen.findByText("一机一档（演示）")).toBeInTheDocument();
+    expect(screen.queryByLabelText("渠道")).not.toBeInTheDocument();
+    await waitFor(() => expect(window.location.search).not.toContain("channel="));
+    expect(window.location.search).toContain("product=TS3PRO");
+  });
+
+  it("has no serious accessibility violations on the executive route", async () => {
+    window.history.pushState({}, "", "/dashboard");
+    const { container } = render(<App />);
+    await screen.findByText("销售渠道概览");
+    const results = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.filter((item) => ["serious", "critical"].includes(item.impact ?? ""))).toHaveLength(0);
+  });
+
+  it("exposes the complete executive metric panorama", async () => {
+    window.history.pushState({}, "", "/dashboard");
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "全部经营指标" }));
+    const dialog = await screen.findByRole("dialog", { name: "经营指标全景" });
+    expect(dialog).toHaveTextContent("32 项经营指标");
+    expect(dialog).toHaveTextContent("总内容时长");
+    expect(dialog).toHaveTextContent("预测 LTV");
+  });
+
+  it("renders the missing deep-dive requirement blocks", async () => {
+    window.history.pushState({}, "", "/sales");
+    const { unmount } = render(<App />);
+    const salesFunnel = (await screen.findByText("完整销售漏斗")).closest("section");
+    expect(salesFunnel).toBeInTheDocument();
+    expect(salesFunnel).not.toHaveTextContent("激活");
+    expect(salesFunnel).toHaveTextContent("退款");
+    expect(screen.getByText("四大销售渠道质量")).toBeInTheDocument();
+    expect(screen.getAllByText("拼多多").length).toBeGreaterThan(0);
+    unmount();
+    window.history.pushState({}, "", "/content");
+    render(<App />);
+    expect(await screen.findByText("20 分钟路线退出点")).toBeInTheDocument();
+    expect(screen.getByText("每条路线完整数据档案")).toBeInTheDocument();
+    expect(screen.getAllByText("景点热度").length).toBeGreaterThan(0);
+  });
+
+  it("renders the activity center and opens a metric definition", async () => {
+    window.history.pushState({}, "", "/activities/lottery");
+    render(<App />);
+    expect(await screen.findByText("兑换与抽奖趋势")).toBeInTheDocument();
+    expect(screen.getByText("轻盈之星整体数据")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "勋章抽奖" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "30天打卡" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("渠道")).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("选择勋章抽奖期次"), "209");
+    expect(await screen.findByText("跑遍全世界（209）")).toBeInTheDocument();
+    expect(window.location.search).toContain("period=209");
+    expect(screen.getAllByText("29 人").length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole("button", { name: "查看机会使用率口径说明" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("实际抽奖次数 ÷ 生成抽奖机会数");
+    await userEvent.click(screen.getByRole("button", { name: "关闭" }));
+    await userEvent.click(screen.getByRole("link", { name: "30天打卡" }));
+    expect(await screen.findByText("D1–D30 完成深度")).toBeInTheDocument();
+    await waitFor(() => expect(window.location.search).not.toContain("period="));
+    expect(screen.getByText("每日趋势明细")).toBeInTheDocument();
+    expect(screen.getByText("新增用户参与与完成转化")).toBeInTheDocument();
+    expect(screen.getByText("分配线路完成表现")).toBeInTheDocument();
+  });
+});
