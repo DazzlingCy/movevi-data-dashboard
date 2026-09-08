@@ -21,7 +21,7 @@ export const globalSearchItems: SearchItem[] = [
   { id: "devices", title: "设备中心", description: "设备激活、连接、使用、故障与一机一档", module: "设备中心", path: "/devices", keywords: ["硬件", "绑定", "固件", "SN"], icon: DeviceMobile, quick: true },
   { id: "users", title: "用户中心", description: "活跃、留存、运动时段与生命周期", module: "用户中心", path: "/users", keywords: ["DAU", "MAU", "画像", "运动用户"], icon: UsersThree, quick: true },
   { id: "content", title: "内容中心", description: "区域、城市、路线、景点与路线完播率", module: "跑遍全球", path: "/content", keywords: ["内容", "城市列表", "有效路线", "大洲"], icon: GlobeHemisphereWest, quick: true },
-  { id: "explore", title: "探索中心", description: "城市点亮、路线解锁、探索深度与等级", module: "跑遍全球", path: "/explore", keywords: ["探索", "解锁城市", "点亮地球", "世界跑者"], icon: Path, quick: true },
+  { id: "explore", title: "探索中心", description: "完成一座城市、路线解锁、探索深度与等级", module: "跑遍全球", path: "/explore", keywords: ["探索", "完成一座城市", "完成城市", "点亮地球", "世界跑者"], icon: Path, quick: true },
   { id: "lottery", title: "勋章抽奖", description: "按期次查看勋章、抽奖节奏、奖池履约与用户明细", module: "活动中心", path: "/activities/lottery", keywords: ["奖池", "兑换", "抽奖机会", "期次", "勋章结转", "用户抽奖列表", "抽奖次数"], icon: Trophy, quick: true },
   { id: "checkin", title: "30天打卡", description: "每日推荐路线、红包领取与30天完成", module: "活动中心", path: "/activities/checkin", keywords: ["打卡活动", "红包", "连接激活", "推荐路线", "8.8元"], icon: Trophy, quick: true },
   { id: "commercial", title: "商业中心", description: "订阅转化、续费、ARPU 与 LTV", module: "商业中心", path: "/commercial", keywords: ["付费", "退订", "会员", "收入"], icon: CurrencyCircleDollar },
@@ -39,7 +39,7 @@ export const globalSearchItems: SearchItem[] = [
   { id: "explore-depth", title: "探索深度", description: "查看第二条路线、城市点亮与五级用户成长", module: "探索中心", path: "/explore", keywords: ["第二条路线", "探索等级", "勋章获得率", "点亮城市"], icon: Path },
   { id: "lottery-usage", title: "抽奖机会使用率", description: "实际抽奖次数 ÷ 生成抽奖机会数", module: "勋章抽奖", path: "/activities/lottery", keywords: ["机会使用率", "实际抽奖", "生成机会", "奖池剩余"], icon: Trophy },
   { id: "checkin-depth", title: "D1–D30 打卡深度", description: "查看到达各任务日的路线完成用户与完成率", module: "30天打卡", path: "/activities/checkin", keywords: ["D1", "D3", "D7", "D15", "D21", "D30", "全程完成"], icon: Trophy },
-  { id: "new-users", title: "新增用户", description: "查看注册、连接激活、首次运动和D7留存", module: "用户中心", path: "/users", keywords: ["新用户", "新增注册", "首周转化", "首次运动", "新用户留存"], icon: UsersThree },
+  { id: "new-users", title: "新增用户", description: "查看注册、连接激活、首次运动和7日后活跃", module: "用户中心", path: "/users", keywords: ["新用户", "新增注册", "首周转化", "首次运动", "7日后活跃"], icon: UsersThree },
   { id: "subscription", title: "订阅与续费", description: "查看订阅转化、到期续费、退订原因和付费关系", module: "商业中心", path: "/commercial", keywords: ["订阅转化率", "续费率", "ARPU", "LTV", "退订"], icon: CurrencyCircleDollar },
   { id: "ai-opportunity", title: "经营机会清单", description: "按优先级查看结论、证据、建议、目标页面和状态", module: "AI 洞察", path: "/insights", keywords: ["高优机会", "中优机会", "本月闭环", "预计增量"], icon: Brain },
 ];

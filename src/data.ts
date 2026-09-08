@@ -8,12 +8,15 @@ export type ReportFilters = {
   channel: string;
   product: string;
   region: string;
+  periodLabel?: string;
 };
 
 export type Metric = {
   id: string;
   label: string;
   value: string;
+  secondaryLabel?: string;
+  secondaryValue?: string;
   raw: number;
   change: string;
   changeTone: "positive" | "negative" | "neutral";
@@ -28,6 +31,7 @@ export type FunnelStage = {
   value: number;
   rate: number;
   definition: string;
+  scope: string;
 };
 
 export type ChannelPerformance = {
@@ -65,6 +69,13 @@ export type ExecutiveData = {
   metrics: Metric[];
   funnel: FunnelStage[];
   channels: ChannelPerformance[];
+  businessOverview: {
+    id: string;
+    title: string;
+    path: string;
+    summary: string;
+    metrics: Metric[];
+  }[];
   insights: Insight[];
 };
 
@@ -156,31 +167,31 @@ export const defaultFilters: ReportFilters = {
   channel: "全部渠道",
   product: "全部型号",
   region: "全国",
+  periodLabel: "2026年8月",
 };
 
 const baseFunnel: FunnelStage[] = [
-  ["sales-volume", "销量", 4328, 100, "完成支付且未即时关闭的有效设备订单"],
-  ["register", "注册", 3689, 85.2, "购买设备后完成 MOVEVI 账号注册"],
-  ["activate", "设备激活", 3056, 82.8, "成功绑定 MOVEVI APP 即视为设备激活"],
-  ["first-run", "首次运动", 1248, 40.8, "设备激活后 7 日内产生首个有效运动记录"],
-  ["first-route", "完成首条路线", 895, 71.7, "完成首条路线且有效里程不少于 1 公里"],
-  ["second-route", "解锁第二条路线", 492, 55.0, "完成首条路线后启动不同路线"],
-  ["continuous-route", "连续完成路线", 328, 66.7, "近 30 日连续完成至少 3 条路线"],
-  ["unlock-city", "解锁城市", 250, 76.2, "完成城市要求的核心路线并点亮城市"],
-  ["explore-cities", "探索更多城市", 172, 68.8, "解锁首个城市后开始第二个城市"],
-  ["subscription", "订阅", 61, 35.5, "产生有效订阅或续费订单"],
-  ["long-retention", "长期留存", 44, 72.1, "首次运动后第 90 日仍有有效运动"],
-].map(([id, name, value, rate, definition]) => ({
-  id: String(id), name: String(name), value: Number(value), rate: Number(rate), definition: String(definition),
+  ["sales-volume", "销量", 4328, 100, "确认收货后的有效设备数量", "筛选时间内已确认收货且未全额退款订单中的设备数量。"],
+  ["register", "注册", 3689, 85.2, "筛选时间内完成 MOVEVI 账号注册", "筛选时间内完成 MOVEVI App 账号注册的去重账号数量。"],
+  ["activate", "设备激活", 3056, 82.8, "成功绑定 MOVEVI App 即视为设备激活", "筛选时间内首次完成设备绑定 / App 绑定的去重设备数量，设备激活和 App 绑定为同一状态。"],
+  ["first-run", "首次运动", 1248, 40.8, "选择一条路线并开启运动", "筛选时间内首次产生有效运动记录的去重用户数量，有效运动需满足里程和时长基础规则。"],
+  ["first-route", "完成首条路线", 895, 71.7, "筛选时间内首次完成任意有效路线", "筛选时间内首次完成 1 条 MOVEVI 有效路线的去重用户数量，路线需完整完成且有效里程不少于 1 公里。"],
+  ["second-route", "启动第二条路线", 492, 55.0, "完成首条路线后选择并启动第二条不同路线", "筛选时间内在完成首条路线后，启动第二条不同路线的去重用户数量。"],
+  ["continuous-route", "完成第二条路线", 328, 66.7, "完整完成第二条不同路线", "筛选时间内在完成首条路线后，又完整完成第二条不同路线的去重用户数量。"],
+  ["unlock-city", "完成一座城市", 250, 76.2, "筛选时间内完成一座城市的核心路线", "筛选时间内完成至少一座城市核心路线并达成城市完成条件的去重用户数量。"],
+  ["explore-cities", "探索更多城市", 172, 68.8, "筛选时间内开始探索第二座及以上城市", "筛选时间内已解锁首座城市后，又开始第二座及以上城市路线探索的去重用户数量。"],
+  ["long-retention", "长期留存", 44, 25.6, "筛选时间内满足长期留存条件", "筛选时间内首次运动满 90 天后仍产生有效运动记录的去重用户数量。"],
+].map(([id, name, value, rate, definition, scope]) => ({
+  id: String(id), name: String(name), value: Number(value), rate: Number(rate), definition: String(definition), scope: String(scope),
 }));
 
 const executive: ExecutiveData = {
   metrics: [
-    { id: "sales", label: "本月销售额", value: "¥1,286,400", raw: 1286400, change: "+8.6%", changeTone: "positive", note: "本月累计成交金额", definition: "本月支付成功且未全额退款订单的实付金额之和。" },
-    { id: "sales-volume", label: "本月销售量", value: "4,328 台", raw: 4328, change: "+11.2%", changeTone: "positive", note: "较上月 · 支付成功订单", definition: "本月支付成功且未即时关闭订单中的设备数量。" },
-    { id: "activation", label: "设备激活率", value: "82.8%", raw: 82.8, change: "-3.4pp", changeTone: "negative", note: "签收后 7 日内激活", definition: "签收后 7 日内成功绑定 MOVEVI App 的去重设备数 ÷ 已签收设备数。" },
-    { id: "retention", label: "D7 留存率", value: "22.3%", raw: 22.3, change: "-1.1pp", changeTone: "negative", note: "首次运动用户口径", definition: "首次产生有效运动后的第 7 日仍有有效运动记录的用户数 ÷ 首次运动用户数。" },
-    { id: "active-users", label: "本月运动用户", value: "8,326 人", raw: 8326, change: "+4.6%", changeTone: "positive", note: "本月至少完成 1 次运动", definition: "本月至少产生 1 次有效运动记录的去重 MOVEVI App 用户数。" },
+    { id: "total-machines", label: "总机器数量", value: "48,620 台", raw: 48620, change: "+3.8%", changeTone: "positive", note: "历史累计 · 确认收货销售", definition: "截至数据截止日，历史累计已确认收货且未全额退款的 MOVEVI 销售设备数量。" },
+    { id: "sales-volume", label: "销售量", value: "4,328 台", raw: 4328, change: "+11.2%", changeTone: "positive", note: "2026年8月 · 确认收货", definition: "筛选时间内已确认收货且未全额退款订单中的设备数量。" },
+    { id: "activation", label: "新设备激活率", value: "3,584 台", secondaryLabel: "激活率", secondaryValue: "82.8%", raw: 3584, change: "-3.4pp", changeTone: "negative", note: "2026年8月 · 首次绑定", definition: "筛选时间内新销售设备中首次完成设备绑定 / App 绑定的去重设备数量；新设备激活率 = 同期新设备激活数 ÷ 同期确认收货新设备数。" },
+    { id: "device-d7-active", label: "新设备七日活跃率", value: "2,022 台", secondaryLabel: "活跃率", secondaryValue: "56.4%", raw: 2022, change: "+1.6pp", changeTone: "positive", note: "2026年8月 · 激活后7日内有效运动", definition: "筛选时间内新激活设备在激活后 7 日内仍有有效运动记录的设备数量；新设备七日活跃率 = 激活后 7 日内有有效运动记录的新设备数 ÷ 同期新激活设备数。" },
+    { id: "active-devices", label: "运动设备", value: "7,918 台", raw: 7918, change: "+5.4%", changeTone: "positive", note: "2026年8月 · 有效运动", definition: "筛选时间内至少产生 1 次有效运动记录的去重设备数量。" },
   ],
   funnel: baseFunnel,
   channels: [
@@ -189,22 +200,71 @@ const executive: ExecutiveData = {
     { channel: "京东", group: "货架电商", sales: 283600, salesVolume: 952, unitPrice: 298, refundRate: 3.8, status: "健康" },
     { channel: "拼多多", group: "货架电商", sales: 141700, salesVolume: 520, unitPrice: 273, refundRate: 9.6, status: "异常" },
   ],
+  businessOverview: [
+    {
+      id: "devices",
+      title: "设备中心",
+      path: "/devices",
+      summary: "看设备是否真正被激活、连接和持续使用。",
+      metrics: [
+        { id: "overview-activated-devices", label: "已激活设备", value: "30,563 台", raw: 30563, change: "+6.4%", changeTone: "positive", note: "完成 App 绑定", definition: "筛选时间内成功绑定 MOVEVI App 的去重设备数，设备激活与 App 绑定为同一状态。" },
+        { id: "overview-usage", label: "设备使用率", value: "63.6%", raw: 63.6, change: "+2.1pp", changeTone: "positive", note: "有连接/运动", definition: "筛选时间内至少产生 1 次有效运动记录的设备数 ÷ 同期激活设备数。" },
+        { id: "overview-silent-devices", label: "沉默设备", value: "3,973 台", raw: 3973, change: "-0.4pp", changeTone: "positive", note: "无连接/运动", definition: "筛选时间内未产生连接记录且未产生有效运动记录的去重设备数量。" },
+      ],
+    },
+    {
+      id: "users",
+      title: "用户中心",
+      path: "/users",
+      summary: "看新增、活跃、留存是否形成运动习惯。",
+      metrics: [
+        { id: "overview-new-users", label: "新增用户", value: "8,642 人", raw: 8642, change: "+9.8%", changeTone: "positive", note: "新注册", definition: "筛选时间内首次完成 MOVEVI App 注册的去重用户数。" },
+        { id: "overview-active-users", label: "运动用户", value: "8,326 人", raw: 8326, change: "+4.6%", changeTone: "positive", note: "至少 1 次有效运动", definition: "筛选时间内至少产生 1 次有效运动记录的去重 MOVEVI App 用户数。" },
+        { id: "overview-d7-active-users", label: "7日后活跃用户", value: "22.3%", raw: 22.3, change: "-1.1pp", changeTone: "negative", note: "7日后活跃用户", definition: "筛选时间内首次产生有效运动的用户，在首次运动 7 日后仍有有效运动记录的用户数 ÷ 首次运动用户数。" },
+      ],
+    },
+    {
+      id: "world",
+      title: "跑遍全球",
+      path: "/content",
+      summary: "看城市、路线和探索内容有没有被真实跑完。",
+      metrics: [
+        { id: "overview-completed-cities", label: "完成城市数量", value: "56 座", raw: 56, change: "+6", changeTone: "positive", note: "达成城市完成条件", definition: "筛选时间内至少被用户完整完成过核心路线并达成城市完成条件的城市数量。" },
+        { id: "overview-completed-city-users", label: "完成城市用户数", value: "8,420 人", raw: 8420, change: "+8.6%", changeTone: "positive", note: "完成至少 1 座城市", definition: "筛选时间内完成至少 1 座城市核心路线并达成城市完成条件的去重用户数。" },
+        { id: "overview-completed-routes", label: "完成路线数量", value: "841 条", raw: 841, change: "+10.4%", changeTone: "positive", note: "完整跑完路线", definition: "筛选时间内至少被用户完整跑完 1 次的有效路线数量。" },
+        { id: "overview-completed-route-users", label: "完成路线用户数", value: "7,260 人", raw: 7260, change: "+7.9%", changeTone: "positive", note: "完成至少 1 条路线", definition: "筛选时间内完整完成至少 1 条有效路线的去重用户数。" },
+        { id: "overview-route-completion", label: "路线完播率", value: "61.8%", raw: 61.8, change: "+3.2pp", changeTone: "positive", note: "完成播放路线内容", definition: "路线完播率 = 完整播放路线内容并完成路线的次数 ÷ 有效开始路线次数。" },
+        { id: "overview-average-playtime", label: "平均播放时长", value: "21.6 分", raw: 21.6, change: "+1.4 分", changeTone: "positive", note: "单次路线播放", definition: "筛选时间内路线播放总时长 ÷ 有效开始路线次数，用于观察路线内容是否被充分体验。" },
+      ],
+    },
+    {
+      id: "activities",
+      title: "活动中心",
+      path: "/activities/lottery",
+      summary: "看活动是否带动路线完成、勋章消耗和用户回访。",
+      metrics: [
+        { id: "overview-lottery-users", label: "抽奖参与用户", value: "12,680 人", raw: 12680, change: "+18.2%", changeTone: "positive", note: "勋章抽奖活动", definition: "筛选时间内至少使用 1 枚勋章参与抽奖的去重用户数。" },
+        { id: "overview-lottery-draws", label: "抽奖次数", value: "42,860 次", raw: 42860, change: "+21.5%", changeTone: "positive", note: "每枚勋章 1 次机会", definition: "筛选时间内用户使用勋章兑换并完成抽奖的总次数。" },
+        { id: "overview-checkin-complete", label: "30天打卡完成", value: "846 人", raw: 846, change: "+6.9%", changeTone: "positive", note: "完成第 30 天任务", definition: "筛选时间内 30 天打卡活动中完成第 30 天路线任务并满足红包领取条件的用户数。" },
+      ],
+    },
+  ],
   insights: [
     { id: "i1", severity: "high", title: "销量增长没有转化为使用增长", conclusion: "本月成交增长 8.6%，但首次运动转化下降 6.2pp。", evidence: ["设备激活 → 首次运动仅 40.8%", "抖音新客首跑率低于均值 7.0pp"], suggestion: "优先修复首次连接与首跑引导，并对抖音渠道做差异化 onboarding。", targetPage: "/devices", targetLabel: "查看激活漏斗" },
-    { id: "i2", severity: "medium", title: "第二条路线是留存分水岭", conclusion: "完成第二条路线的用户 D7 留存高出 18.7pp。", evidence: ["首条 → 第二条仅 55.0%", "第二条路线完成者 D7 为 38.6%"], suggestion: "在首条完成页推荐同城低门槛路线，并给予限时勋章。", targetPage: "/explore", targetLabel: "查看探索转化" },
+    { id: "i2", severity: "medium", title: "第二条路线是活跃分水岭", conclusion: "完成第二条路线的用户 7日后活跃率高出 18.7pp。", evidence: ["首条 → 第二条仅 55.0%", "第二条路线完成者 7日后活跃率为 38.6%"], suggestion: "在首条完成页推荐同城低门槛路线，并给予限时勋章。", targetPage: "/explore", targetLabel: "查看探索转化" },
   ],
 };
 
 const trend = (values: number[]): TimeSeriesPoint[] => values.map((value, i) => ({ date: `${8 + i * 3}日`, value, secondary: Math.round(value * (0.91 + (i % 3) * 0.02)) }));
 const metricDefinitions: Record<string, string> = {
   "销售额": "筛选周期内支付成功且未全额退款订单的实付金额之和。",
-  "销量": "筛选周期内支付成功且未即时关闭订单中的设备数量。",
+  "销量": "筛选周期内已确认收货且未全额退款订单中的设备数量。",
   "客单价": "销售额 ÷ 支付成功订单数。",
   "退货率": "完成退货退款的订单数 ÷ 支付成功订单数。",
   "已激活设备": "已成功绑定 MOVEVI App 的去重设备数，设备激活与 App 绑定为同一状态。",
   "7日激活率": "签收后 7 日内成功绑定 MOVEVI App 的设备数 ÷ 已签收设备数。",
   "30日使用率": "近 30 日至少产生 1 次有效运动记录的设备数 ÷ 累计激活设备数。",
-  "故障设备率": "统计周期内有有效故障记录的设备数 ÷ 有连接记录的设备数。",
+  "沉默设备": "累计激活设备中，近 30 日未产生连接记录且未产生有效运动记录的去重设备数量。",
   "DAU": "自然日内至少产生 1 次有效运动或路线行为的去重 MOVEVI App 用户数。",
   "WAU": "连续 7 日内至少产生 1 次有效运动或路线行为的去重 MOVEVI App 用户数。",
   "MAU": "连续 30 日内至少产生 1 次有效运动或路线行为的去重 MOVEVI App 用户数。",
@@ -228,7 +288,7 @@ const metricDefinitions: Record<string, string> = {
   "活动参与用户": "统计周期内至少报名或参与 1 项活动的去重 MOVEVI App 用户数。",
   "活动完成率": "达到对应活动完成条件的用户数 ÷ 活动报名用户数。",
   "活动拉新用户": "通过活动页面首次注册 MOVEVI App 的去重用户数。",
-  "活动后D7留存": "完成或参与活动后第 7 日仍有有效运动记录的用户数 ÷ 活动参与用户数。",
+  "活动后7日活跃": "完成或参与活动后第 7 日仍有有效运动记录的用户数 ÷ 活动参与用户数。",
   "识别参与用户": "所选活动期内发生报名、勋章兑换或抽奖任一行为的去重用户数。",
   "完成路线数": "所选活动期内用户完成有效路线的总次数；每完成一条路线通常获得 2–3 枚勋章。",
   "获得勋章": "所选活动期内因完成有效路线发放的勋章总数；勋章不会过期，可结转到下一期使用。",
@@ -276,7 +336,7 @@ function shiftIsoDate(value: string, days: number) {
 const modules: Record<string, ModuleData> = {
   sales: {
     title: "销售中心", description: "从渠道曝光到退款，判断增长的规模、质量与可持续性。",
-    metrics: [metric("revenue", "销售额", "¥1,286,400", 1286400, "+8.6%", "本月累计成交金额"), metric("orders", "销量", "4,328 台", 4328, "+11.2%", "支付成功订单"), metric("aov", "客单价", "¥297", 297, "-2.3%", "受抖音组合装影响", "negative"), metric("refund", "退货率", "5.1%", 5.1, "+0.8pp", "高于 4.5% 预警线", "negative")],
+    metrics: [metric("revenue", "销售额", "¥1,286,400", 1286400, "+8.6%", "本月累计成交金额"), metric("orders", "销量", "4,328 台", 4328, "+11.2%", "确认收货设备"), metric("aov", "客单价", "¥297", 297, "-2.3%", "受抖音组合装影响", "negative"), metric("refund", "退货率", "5.1%", 5.1, "+0.8pp", "高于 4.5% 预警线", "negative")],
     trend: trend([27, 31, 29, 38, 36, 42, 47, 44, 51]), chartTitle: "销售额与有效订单趋势", chartUnit: "万元",
     distribution: [{ name: "TS2", value: 24 }, { name: "TS2PRO", value: 28 }, { name: "TS3", value: 20 }, { name: "TS3PRO", value: 28 }], distributionTitle: "产品销售结构",
     columns: ["渠道", "曝光", "咨询率", "支付转化", "退货率", "销售额"], rows: [["抖音", "46.8万", "14.2%", "3.6%", "7.4%", "¥496,300"], ["天猫", "25.4万", "12.8%", "5.3%", "3.1%", "¥364,800"], ["京东", "18.7万", "10.9%", "5.7%", "3.8%", "¥283,600"], ["拼多多", "12.9万", "11.6%", "4.2%", "6.3%", "¥141,700"]], sectionTitle: "渠道质量明细",
@@ -284,7 +344,7 @@ const modules: Record<string, ModuleData> = {
   },
   devices: {
     title: "设备中心", description: "看清每一台设备从签收到激活、连接、使用和故障的完整状态。",
-    metrics: [metric("activated", "已激活设备", "30,563 台", 30563, "+6.2%", "累计激活"), metric("rate", "7日激活率", "82.8%", 82.8, "-3.4pp", "签收设备口径", "negative"), metric("usage", "30日使用率", "63.6%", 63.6, "+2.1pp", "近 30 日有连接"), metric("fault", "故障设备率", "1.8%", 1.8, "-0.4pp", "较上月下降 0.4pp")],
+    metrics: [metric("activated", "已激活设备", "30,563 台", 30563, "+6.2%", "累计激活"), metric("rate", "7日激活率", "82.8%", 82.8, "-3.4pp", "签收设备口径", "negative"), metric("usage", "30日使用率", "63.6%", 63.6, "+2.1pp", "近 30 日有连接"), metric("silent", "沉默设备", "3,973 台", 3973, "-0.4pp", "近 30 日无连接/运动")],
     trend: trend([71, 74, 76, 80, 79, 83, 82, 86, 88]), chartTitle: "设备激活与连接趋势", chartUnit: "%",
     distribution: [{ name: "活跃", value: 64 }, { name: "低频", value: 21 }, { name: "沉默", value: 13 }, { name: "故障", value: 2 }], distributionTitle: "设备状态分布",
     columns: ["设备唯一 ID", "型号", "出厂时间", "销售时间", "绑定用户", "激活时间", "首次连接", "最近连接", "30日连接", "累计运动", "累计时长", "累计里程", "故障记录", "固件版本", "APP版本", "状态"],
@@ -357,7 +417,7 @@ const modules: Record<string, ModuleData> = {
     metrics: [metric("high", "高优机会", "3 项", 3, "+1", "需本周决策", "negative"), metric("medium", "中优机会", "6 项", 6, "+2", "进入验证队列", "neutral"), metric("closed", "本月闭环", "8 项", 8, "+33%", "有明确结果"), metric("impact", "预计增量", "¥186,000", 186000, "+12.4%", "模拟经营场景")],
     trend: trend([8, 11, 9, 14, 13, 17, 16, 20, 22]), chartTitle: "机会发现与闭环趋势", chartUnit: "项",
     distribution: [{ name: "转化", value: 38 }, { name: "留存", value: 31 }, { name: "内容", value: 19 }, { name: "设备", value: 12 }], distributionTitle: "机会类型",
-    columns: ["优先级", "结论", "核心证据", "建议动作", "目标页面", "状态"], rows: [["高", "销量未转化为使用增长", "首跑转化 -6.2pp", "重做首跑引导", "设备中心", "待决策"], ["高", "抖音退货与低激活相关", "未激活退货占 61%", "售后前置激活辅导", "销售中心", "验证中"], ["中", "第二条路线拉动留存", "D7 +18.7pp", "推荐低门槛同城路线", "探索中心", "已排期"], ["中", "滨水路线价值更高", "复跑 +8.3pp", "扩充滨水内容", "内容中心", "观察中"]], sectionTitle: "结论—证据—建议—目标页面",
+    columns: ["优先级", "结论", "核心证据", "建议动作", "目标页面", "状态"], rows: [["高", "销量未转化为使用增长", "首跑转化 -6.2pp", "重做首跑引导", "设备中心", "待决策"], ["高", "抖音退货与低激活相关", "未激活退货占 61%", "售后前置激活辅导", "销售中心", "验证中"], ["中", "第二条路线拉动活跃", "7日后活跃 +18.7pp", "推荐低门槛同城路线", "探索中心", "已排期"], ["中", "滨水路线价值更高", "复跑 +8.3pp", "扩充滨水内容", "内容中心", "观察中"]], sectionTitle: "结论—证据—建议—目标页面",
     notes: [{ title: "规则引擎说明", text: "本页为演示数据，通过阈值与交叉指标规则生成，不调用外部 AI 服务。", tone: "blue" }, { title: "建议验证方式", text: "所有建议需经业务 owner 确认口径并进入实验或排期。", tone: "orange" }],
   },
 };
@@ -538,9 +598,10 @@ const activityCenter: ActivityCenterData = {
   },
 };
 
+const productScale: Record<string, number> = { "全部型号": 1, "TS2": 0.24, "TS2PRO": 0.28, "TS3": 0.2, "TS3PRO": 0.28 };
+
 function scaleFor(filters: ReportFilters) {
   const channelScale: Record<string, number> = { "全部渠道": 1, "抖音": 0.37, "天猫": 0.29, "京东": 0.22, "拼多多": 0.12 };
-  const productScale: Record<string, number> = { "全部型号": 1, "TS2": 0.24, "TS2PRO": 0.28, "TS3": 0.2, "TS3PRO": 0.28 };
   const regionScale: Record<string, number> = { "全国": 1, "华东": 0.41, "华南": 0.24, "华北": 0.2, "西部": 0.15 };
   const from = new Date(`${filters.from}T00:00:00`);
   const to = new Date(`${filters.to}T00:00:00`);
@@ -551,12 +612,40 @@ function scaleFor(filters: ReportFilters) {
 
 function filteredExecutive(filters: ReportFilters): ExecutiveData {
   const scale = scaleFor({ ...filters, channel: "全部渠道" });
-  if (scale === 1) return executive;
+  const selectedProductScale = productScale[filters.product] ?? 1;
+  const periodLabel = filters.periodLabel ?? "当前筛选时间";
+  const withPeriodNote = (item: Metric) => {
+    if (item.id === "total-machines") return item;
+    const [, suffix = item.note] = item.note.split(" · ");
+    return { ...item, note: `${periodLabel} · ${suffix}` };
+  };
+  const withBusinessPeriodNote = (item: Metric) => ({ ...item, note: `${periodLabel} · ${item.note}` });
+  const scaleExecutiveMetric = (item: Metric) => {
+    const noted = withPeriodNote(item);
+    if (noted.id === "total-machines") {
+      const raw = Math.round(noted.raw * selectedProductScale);
+      return { ...noted, raw, value: `${raw.toLocaleString("zh-CN")} 台` };
+    }
+    if (noted.value.includes("台")) {
+      const raw = Math.round(noted.raw * scale);
+      return { ...noted, raw, value: `${raw.toLocaleString("zh-CN")} 台` };
+    }
+    return noted;
+  };
+  const businessOverview = executive.businessOverview.map((group) => ({
+    ...group,
+    metrics: group.metrics.map(withBusinessPeriodNote),
+  }));
+  if (scale === 1 && selectedProductScale === 1) return { ...executive, metrics: executive.metrics.map(withPeriodNote), businessOverview };
   return {
     ...executive,
-    metrics: executive.metrics.map((item) => item.id === "sales" || item.id === "sales-volume" || item.id === "active-users" ? { ...item, raw: Math.round(item.raw * scale), value: item.id === "sales" ? `¥${Math.round(item.raw * scale).toLocaleString("zh-CN")}` : item.id === "sales-volume" ? `${Math.round(item.raw * scale).toLocaleString("zh-CN")} 台` : `${Math.round(item.raw * scale).toLocaleString("zh-CN")} 人` } : item),
+    metrics: executive.metrics.map(scaleExecutiveMetric),
     funnel: executive.funnel.map((item) => ({ ...item, value: Math.max(1, Math.round(item.value * scale)) })),
     channels: executive.channels,
+    businessOverview: businessOverview.map((group) => ({
+      ...group,
+      metrics: group.metrics.map((item) => item.raw > 100 ? { ...item, raw: Math.round(item.raw * scale), value: formatScaledValue(item.value, item.raw * scale) } : item),
+    })),
   };
 }
 
@@ -572,6 +661,11 @@ function formatScaledValue(value: string, raw: number) {
   if (value.startsWith("¥")) return `¥${rounded.toLocaleString("zh-CN")}`;
   if (value.includes("台")) return `${rounded.toLocaleString("zh-CN")} 台`;
   if (value.includes("人")) return `${rounded.toLocaleString("zh-CN")} 人`;
+  if (value.includes("条")) return `${rounded.toLocaleString("zh-CN")} 条`;
+  if (value.includes("个")) return `${rounded.toLocaleString("zh-CN")} 个`;
+  if (value.includes("次")) return `${rounded.toLocaleString("zh-CN")} 次`;
+  if (value.includes("km")) return `${rounded.toLocaleString("zh-CN")} km`;
+  if (value.includes("h")) return `${rounded.toLocaleString("zh-CN")} h`;
   if (/^[\d,]+$/.test(value)) return rounded.toLocaleString("zh-CN");
   return value;
 }

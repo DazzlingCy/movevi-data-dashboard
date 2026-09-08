@@ -6,13 +6,18 @@ describe("MockDataProvider", () => {
     const result = await dataProvider.getExecutiveDashboard(defaultFilters);
     expect(result.asOf).toContain("2026-09-02");
     expect(result.source).toContain("演示数据");
-    expect(result.data.funnel).toHaveLength(11);
+    expect(result.data.funnel).toHaveLength(10);
     expect(result.data.funnel[0]).toMatchObject({ name: "销量", value: 4328 });
-    expect(result.data.funnel.map((stage) => stage.name)).toEqual(expect.arrayContaining(["连续完成路线", "解锁城市", "探索更多城市", "长期留存"]));
+    expect(result.data.funnel.map((stage) => stage.name)).toEqual(expect.arrayContaining(["启动第二条路线", "完成第二条路线", "完成一座城市", "探索更多城市", "长期留存"]));
     expect(result.data.funnel.map((stage) => stage.name)).not.toEqual(expect.arrayContaining(["流量", "咨询", "购买", "收货", "形成运动习惯", "复购 / 推荐"]));
+    expect(result.data.funnel.map((stage) => stage.name)).not.toContain("订阅");
     expect(result.data.funnel.map((stage) => stage.name)).not.toContain("APP绑定");
-    expect(result.data.metrics[1]).toMatchObject({ id: "sales-volume", label: "本月销售量", value: "4,328 台" });
-    expect(result.data.metrics[4]).toMatchObject({ id: "active-users", label: "本月运动用户", value: "8,326 人" });
+    expect(result.data.metrics.map((metric) => metric.label)).toEqual(["总机器数量", "销售量", "新设备激活率", "新设备七日活跃率", "运动设备"]);
+    expect(result.data.metrics[0]).toMatchObject({ id: "total-machines", value: "48,620 台" });
+    expect(result.data.metrics[1]).toMatchObject({ id: "sales-volume", label: "销售量", value: "4,328 台" });
+    expect(result.data.metrics[2]).toMatchObject({ id: "activation", label: "新设备激活率", value: "3,584 台", secondaryLabel: "激活率", secondaryValue: "82.8%" });
+    expect(result.data.metrics[3]).toMatchObject({ id: "device-d7-active", label: "新设备七日活跃率", value: "2,022 台", secondaryLabel: "活跃率", secondaryValue: "56.4%" });
+    expect(result.data.metrics[4]).toMatchObject({ id: "active-devices", label: "运动设备", value: "7,918 台" });
     result.data.funnel.slice(1).forEach((stage, index) => expect(stage.value).toBeLessThanOrEqual(result.data.funnel[index].value));
   });
 

@@ -2,17 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowDownRight, ArrowRight, ArrowUpRight, Bell, Brain, CalendarBlank, CaretDown,
-  ChartLineUp, CheckCircle, CurrencyCircleDollar, Database, DeviceMobile, Gauge, GlobeHemisphereWest,
+  ChartLineUp, CurrencyCircleDollar, Database, DeviceMobile, Gauge, GlobeHemisphereWest,
   Info, List, Question, SealCheck, ShoppingCart,
   Trophy, TrendDown, TrendUp, UsersThree, WarningCircle, X,
 } from "@phosphor-icons/react";
-import { FaTiktok } from "react-icons/fa6";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import {
-  ChannelPerformance, DataResult, DataStatus, defaultFilters, ExecutiveData, formatNumber,
+  DataResult, DataStatus, defaultFilters, ExecutiveData, formatNumber,
   FunnelStage, Metric, ModuleData, northStarFormula, ReportFilters, dataProvider,
 } from "./data";
 import { DeepDiveSections, ExecutivePanorama } from "./Supplemental";
@@ -47,6 +46,39 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "/insights": { title: "AI 洞察", subtitle: "将数据信号变成经营动作" },
 };
 
+type DashboardPeriodKind = "total" | "month" | "quarter" | "year";
+
+const dashboardPeriodKinds: { value: DashboardPeriodKind; label: string }[] = [
+  { value: "total", label: "总" },
+  { value: "month", label: "月份" },
+  { value: "quarter", label: "季度" },
+  { value: "year", label: "年份" },
+];
+const dashboardMonthOptions = ["2026-09", "2026-08", "2026-07", "2026-06", "2026-05", "2026-04"];
+const dashboardQuarterOptions = ["2026-Q3", "2026-Q2", "2026-Q1", "2025-Q4"];
+const dashboardYearOptions = ["2026", "2025", "2024"];
+
+function resolveDashboardPeriod(params: URLSearchParams) {
+  const kind = (params.get("dashboardPeriod") ?? "month") as DashboardPeriodKind | "lastMonth";
+  const safeKind: DashboardPeriodKind = dashboardPeriodKinds.some((item) => item.value === kind) ? kind as DashboardPeriodKind : "month";
+  const value = params.get("dashboardPeriodValue") ?? (safeKind === "month" ? "2026-08" : safeKind === "quarter" ? "2026-Q3" : safeKind === "year" ? "2026" : "");
+  if (safeKind === "total") return { kind: safeKind, value: "", from: "2020-01-01", to: "2026-09-02", label: "全部累计" };
+  if (safeKind === "month") {
+    const [year, month] = (dashboardMonthOptions.includes(value) ? value : "2026-08").split("-");
+    const lastDay = year === "2026" && month === "09" ? "02" : new Date(Number(year), Number(month), 0).getDate().toString().padStart(2, "0");
+    return { kind: safeKind, value: `${year}-${month}`, from: `${year}-${month}-01`, to: `${year}-${month}-${lastDay}`, label: `${year}年${Number(month)}月` };
+  }
+  if (safeKind === "quarter") {
+    const selected = dashboardQuarterOptions.includes(value) ? value : "2026-Q3";
+    const [year, quarter] = selected.split("-Q");
+    const ranges: Record<string, [string, string, string]> = { "1": ["01-01", "03-31", "第1季度"], "2": ["04-01", "06-30", "第2季度"], "3": ["07-01", year === "2026" ? "09-02" : "09-30", "第3季度"], "4": ["10-01", "12-31", "第4季度"] };
+    const [from, to, label] = ranges[quarter] ?? ranges["3"];
+    return { kind: safeKind, value: selected, from: `${year}-${from}`, to: `${year}-${to}`, label: `${year}年${label}` };
+  }
+  const selectedYear = dashboardYearOptions.includes(value) ? value : "2026";
+  return { kind: safeKind, value: selectedYear, from: `${selectedYear}-01-01`, to: selectedYear === "2026" ? "2026-09-02" : `${selectedYear}-12-31`, label: `${selectedYear}年` };
+}
+
 function Logo() {
   return <div className="brand" aria-label="MOVEVI 数据后台"><img className="brand-logo" src={`${import.meta.env.BASE_URL}movevi-logo.png`} alt="" /><span><b>MOVEVI</b><small>WORLD RUNNING</small></span></div>;
 }
@@ -54,6 +86,7 @@ function Logo() {
 function Shell() {
   const location = useLocation();
   const navigate = useNavigate();
+  const isDashboardPage = location.pathname === "/dashboard" || location.pathname === "/";
   const isSalesPage = location.pathname === "/sales";
   const isActivityPage = location.pathname.startsWith("/activities");
   const isLotteryPage = location.pathname === "/activities/lottery";
@@ -69,20 +102,34 @@ function Shell() {
     const activityFilterKeys: (keyof ReportFilters)[] = ["from", "to", "channel", "product", "region"];
     const hadOutOfScopeActivityFilters = isActivityPage && activityFilterKeys.some((key) => normalized.has(key));
     const hadOutOfScopePeriod = !isLotteryPage && normalized.has("period");
+    const hadRegionFilter = normalized.has("region");
+    const hadOutOfScopeDashboardPeriod = !isDashboardPage && (normalized.has("dashboardPeriod") || normalized.has("dashboardPeriodValue"));
+    const hadDashboardDateRange = isDashboardPage && (normalized.has("from") || normalized.has("to"));
     normalized.delete("stage");
+    normalized.delete("region");
     if (!isSalesPage) normalized.delete("channel");
     if (isActivityPage) activityFilterKeys.forEach((key) => normalized.delete(key));
     if (!isLotteryPage) normalized.delete("period");
+    if (!isDashboardPage) {
+      normalized.delete("dashboardPeriod");
+      normalized.delete("dashboardPeriodValue");
+    }
+    if (isDashboardPage) {
+      normalized.delete("from");
+      normalized.delete("to");
+    }
     searchParamsRef.current = normalized;
-    if (hadStageFilter || hadOutOfScopeChannel || hadOutOfScopeActivityFilters || hadOutOfScopePeriod) setSearchParams(normalized, { replace: true });
-  }, [isActivityPage, isLotteryPage, isSalesPage, searchParams, setSearchParams]);
+    if (hadStageFilter || hadOutOfScopeChannel || hadOutOfScopeActivityFilters || hadOutOfScopePeriod || hadRegionFilter || hadOutOfScopeDashboardPeriod || hadDashboardDateRange) setSearchParams(normalized, { replace: true });
+  }, [isActivityPage, isDashboardPage, isLotteryPage, isSalesPage, searchParams, setSearchParams]);
+  const dashboardPeriod = useMemo(() => resolveDashboardPeriod(searchParams), [searchParams]);
   const filters = useMemo<ReportFilters>(() => ({
-    from: searchParams.get("from") ?? defaultFilters.from,
-    to: searchParams.get("to") ?? defaultFilters.to,
+    from: isDashboardPage ? dashboardPeriod.from : searchParams.get("from") ?? defaultFilters.from,
+    to: isDashboardPage ? dashboardPeriod.to : searchParams.get("to") ?? defaultFilters.to,
     channel: isSalesPage ? searchParams.get("channel") ?? defaultFilters.channel : defaultFilters.channel,
     product: searchParams.get("product") ?? defaultFilters.product,
-    region: searchParams.get("region") ?? defaultFilters.region,
-  }), [isSalesPage, searchParams]);
+    region: defaultFilters.region,
+    periodLabel: isDashboardPage ? dashboardPeriod.label : undefined,
+  }), [dashboardPeriod.from, dashboardPeriod.label, dashboardPeriod.to, isDashboardPage, isSalesPage, searchParams]);
 
   const changeFilter = (key: keyof ReportFilters, value: string) => {
     const next = new URLSearchParams(searchParamsRef.current);
@@ -99,9 +146,28 @@ function Shell() {
     setSearchParams(next, { replace: true });
   };
 
+  const changeDashboardPeriod = (kind: DashboardPeriodKind, value = "") => {
+    const next = new URLSearchParams(searchParamsRef.current);
+    if (kind === "month" && !value) next.delete("dashboardPeriod"); else next.set("dashboardPeriod", kind);
+    if (value) next.set("dashboardPeriodValue", value); else next.delete("dashboardPeriodValue");
+    next.delete("from");
+    next.delete("to");
+    searchParamsRef.current = next;
+    setSearchParams(next, { replace: true });
+  };
+
   const pathWithFilters = (path: string) => {
     const next = new URLSearchParams(searchParams);
+    next.delete("region");
     if (path !== "/sales") next.delete("channel");
+    if (path !== "/dashboard") {
+      next.delete("dashboardPeriod");
+      next.delete("dashboardPeriodValue");
+    }
+    if (path === "/dashboard") {
+      next.delete("from");
+      next.delete("to");
+    }
     if (path.startsWith("/activities")) ["from", "to", "channel", "product", "region"].forEach((key) => next.delete(key));
     if (path !== "/activities/lottery") next.delete("period");
     const query = next.toString();
@@ -127,7 +193,7 @@ function Shell() {
         <div className="top-actions"><span className="data-pill"><span className="live-dot" />演示数据 · 截止 09-02</span><GlobalSearch onNavigate={navigateKeepingFilters} /><button className="icon-button notification" aria-label="通知"><Bell /><i /></button></div>
       </header>
       <main className="main-content">
-        {!isActivityPage && <FilterBar filters={filters} onChange={changeFilter} onDateChange={changeDateRange} showChannel={isSalesPage} />}
+        {isDashboardPage ? <DashboardPeriodBar period={dashboardPeriod} product={filters.product} onChange={changeDashboardPeriod} onProductChange={(value) => changeFilter("product", value)} /> : !isActivityPage && <FilterBar filters={filters} onChange={changeFilter} onDateChange={changeDateRange} showChannel={isSalesPage} />}
         <Routes>
           <Route path="/dashboard" element={<Dashboard filters={filters} navigate={navigateKeepingFilters} />} />
           <Route path="/sales" element={<ModulePage moduleKey="sales" filters={filters} loader={dataProvider.getSalesCenter.bind(dataProvider)} />} />
@@ -158,6 +224,28 @@ const datePresets = [
   { label: "上月", from: "2026-08-01", to: "2026-08-31" },
   { label: "今年至今", from: "2026-01-01", to: "2026-09-02" },
 ];
+
+function DashboardPeriodBar({ period, product, onChange, onProductChange }: { period: ReturnType<typeof resolveDashboardPeriod>; product: string; onChange: (kind: DashboardPeriodKind, value?: string) => void; onProductChange: (value: string) => void }) {
+  const valueOptions = period.kind === "month" ? dashboardMonthOptions : period.kind === "quarter" ? dashboardQuarterOptions : period.kind === "year" ? dashboardYearOptions : [];
+  const formatOption = (value: string) => {
+    if (period.kind === "month") {
+      const [year, month] = value.split("-");
+      return `${year}年${Number(month)}月`;
+    }
+    if (period.kind === "quarter") {
+      const [year, quarter] = value.split("-Q");
+      return `${year}年第${quarter}季度`;
+    }
+    return `${value}年`;
+  };
+  return <section className="filter-bar dashboard-period-bar" aria-label="首页时间筛选">
+    <div className="period-label"><CalendarBlank /><div><b>数据周期</b><span>{period.label} · {formatDisplayDate(period.from)} 至 {formatDisplayDate(period.to)}</span></div></div>
+    <label className="select-wrap period-kind"><span>周期类型</span><select aria-label="周期类型" value={period.kind} onChange={(event) => onChange(event.target.value as DashboardPeriodKind)}>{dashboardPeriodKinds.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><CaretDown size={12} /></label>
+    {valueOptions.length > 0 && <label className="select-wrap period-value"><span>周期值</span><select aria-label="周期值" value={period.value} onChange={(event) => onChange(period.kind, event.target.value)}>{valueOptions.map((value) => <option key={value} value={value}>{formatOption(value)}</option>)}</select><CaretDown size={12} /></label>}
+    <FilterSelect label="型号" value={product} options={["全部型号", "TS2", "TS2PRO", "TS3", "TS3PRO"]} onChange={onProductChange} />
+    <button className="reset-button" onClick={() => { onChange("month"); onProductChange(defaultFilters.product); }}>重置</button>
+  </section>;
+}
 
 function formatDisplayDate(value: string) {
   return value.replaceAll("-", "/");
@@ -225,8 +313,7 @@ function FilterBar({ filters, onChange, onDateChange, showChannel }: { filters: 
     <DateRangePicker from={filters.from} to={filters.to} onChange={onDateChange} />
     {showChannel && <FilterSelect label="渠道" value={filters.channel} options={["全部渠道", "抖音", "天猫", "京东", "拼多多"]} onChange={(v) => onChange("channel", v)} />}
     <FilterSelect label="型号" value={filters.product} options={["全部型号", "TS2", "TS2PRO", "TS3", "TS3PRO"]} onChange={(v) => onChange("product", v)} />
-    <FilterSelect label="地区" value={filters.region} options={["全国", "华东", "华南", "华北", "西部"]} onChange={(v) => onChange("region", v)} />
-    <button className="reset-button" onClick={() => { onDateChange(defaultFilters.from, defaultFilters.to); if (showChannel) onChange("channel", defaultFilters.channel); onChange("product", defaultFilters.product); onChange("region", defaultFilters.region); }}>重置</button>
+    <button className="reset-button" onClick={() => { onDateChange(defaultFilters.from, defaultFilters.to); if (showChannel) onChange("channel", defaultFilters.channel); onChange("product", defaultFilters.product); }}>重置</button>
   </section>;
 }
 
@@ -256,28 +343,28 @@ function Dashboard({ filters, navigate }: { filters: ReportFilters; navigate: (p
   const [selectedStage, setSelectedStage] = useState<FunnelStage | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<Metric | null>(null);
   const [panoramaOpen, setPanoramaOpen] = useState(false);
-  const [sortKey, setSortKey] = useState<keyof ChannelPerformance>("sales");
   if (!result) return <LoadingState />;
   const { data } = result;
-  const sortedChannels = [...data.channels].sort((a, b) => typeof a[sortKey] === "number" ? Number(b[sortKey]) - Number(a[sortKey]) : String(a[sortKey]).localeCompare(String(b[sortKey]), "zh-CN"));
   return <div className="dashboard-page">
     <DataState status={result.status} />
     <section className="kpi-grid" aria-label="核心经营指标">
-      {data.metrics.map((metric) => <KpiCard key={metric.id} metric={metric} accent={metric.id === "active-users"} onClick={() => setSelectedMetric(metric)} />)}
+      {data.metrics.map((metric) => <KpiCard key={metric.id} metric={metric} accent={metric.id === "active-devices"} onClick={() => setSelectedMetric(metric)} />)}
     </section>
     <section className="dashboard-middle">
       <article className="panel funnel-panel">
-        <PanelHeader title="核心增长链路" meta="11 阶段完整链路 · 去重用户 / 设备" action={<><button onClick={() => setPanoramaOpen(true)}>全部经营指标</button><button onClick={() => navigate("/devices")}>查看激活漏斗 <ArrowRight /></button></>} />
+        <PanelHeader title="核心增长链路" meta="10 阶段完整链路 · 去重用户 / 设备" action={<><button onClick={() => setPanoramaOpen(true)}>全部经营指标</button><button onClick={() => navigate("/devices")}>查看激活漏斗 <ArrowRight /></button></>} />
         <Funnel stages={data.funnel} onSelect={setSelectedStage} />
         <div className="loss-row">
           <button className="loss-card critical" onClick={() => setSelectedStage(data.funnel.find((stage) => stage.id === "first-run") ?? null)}><span><TrendDown />主要流失点 01</span><b>设备激活 → 首次运动</b><p><strong>40.8%</strong> 转化率 · 流失 1,808</p></button>
-          <button className="loss-card warning" onClick={() => setSelectedStage(data.funnel.find((stage) => stage.id === "second-route") ?? null)}><span><TrendDown />主要流失点 02</span><b>首条路线 → 第二条路线</b><p><strong>55.0%</strong> 转化率 · 流失 403</p></button>
+          <button className="loss-card warning" onClick={() => setSelectedStage(data.funnel.find((stage) => stage.id === "second-route") ?? null)}><span><TrendDown />主要流失点 02</span><b>首条路线 → 启动第二条路线</b><p><strong>55.0%</strong> 转化率 · 流失 403</p></button>
         </div>
       </article>
     </section>
-    <section className="panel channel-panel">
-      <PanelHeader title="销售渠道概览" meta="仅展示销售数据 · 不影响其他业务指标" action={<span className="source-inline"><Database />统一模拟数据</span>} />
-      <div className="table-scroll"><table><thead><tr><SortableTh label="渠道" field="channel" active={sortKey} onSort={setSortKey} /><th>渠道类型</th><SortableTh label="销售额" field="sales" active={sortKey} onSort={setSortKey} /><SortableTh label="销量" field="salesVolume" active={sortKey} onSort={setSortKey} /><SortableTh label="客单价" field="unitPrice" active={sortKey} onSort={setSortKey} /><SortableTh label="退款率" field="refundRate" active={sortKey} onSort={setSortKey} /><th>销售表现</th></tr></thead><tbody>{sortedChannels.map((row) => <tr key={row.channel}><td><ChannelMark name={row.channel} />{row.channel}</td><td className="muted">{row.group}</td><td>¥{formatNumber(row.sales)}</td><td>{formatNumber(row.salesVolume)} 台</td><td>¥{formatNumber(row.unitPrice)}</td><td>{row.refundRate}%</td><td><StatusTag status={row.status} /></td></tr>)}</tbody></table></div>
+    <section className="panel business-overview-panel">
+      <PanelHeader title="核心业务概览" meta="设备、用户、跑遍全球与活动中心关键数据" action={<span className="source-inline"><Database />统一模拟数据</span>} />
+      <div className="business-overview-grid">
+        {data.businessOverview.map((group) => <BusinessOverviewCard key={group.id} group={group} navigate={navigate} onMetricClick={setSelectedMetric} />)}
+      </div>
     </section>
     <footer className="dashboard-foot"><span><Info />{northStarFormula}</span><span>数据截止 {result.asOf} · {result.source}</span></footer>
     {(selectedStage || selectedMetric) && <DetailDrawer stage={selectedStage} metric={selectedMetric} onClose={() => { setSelectedStage(null); setSelectedMetric(null); }} navigate={navigate} />}
@@ -285,8 +372,19 @@ function Dashboard({ filters, navigate }: { filters: ReportFilters; navigate: (p
   </div>;
 }
 
+function BusinessOverviewCard({ group, navigate, onMetricClick }: { group: ExecutiveData["businessOverview"][number]; navigate: (path: string) => void; onMetricClick: (metric: Metric) => void }) {
+  const Icon = group.id === "devices" ? DeviceMobile : group.id === "users" ? UsersThree : group.id === "world" ? GlobeHemisphereWest : Trophy;
+  return <article className={`business-card ${group.id}`}>
+    <header><span><Icon weight="duotone" /></span><div><h3>{group.title}</h3><p>{group.summary}</p></div></header>
+    <div className="business-metrics">
+      {group.metrics.map((metric) => <button key={metric.id} type="button" onClick={() => onMetricClick(metric)} title={`口径：${metric.definition}`} aria-label={`查看${group.title}${metric.label}口径说明`}><span>{metric.label}<Question size={13} /></span><strong>{metric.value}</strong><small className={metric.changeTone === "negative" ? "negative" : "positive"}>{metric.changeTone === "negative" ? <ArrowDownRight /> : <ArrowUpRight />}{metric.change}</small><em>{metric.secondaryValue && <b>{metric.secondaryLabel} {metric.secondaryValue}</b>}{metric.secondaryValue ? " · " : ""}{metric.note}</em></button>)}
+    </div>
+    <button type="button" className="business-link" onClick={() => navigate(group.path)}>进入{group.title} <ArrowRight /></button>
+  </article>;
+}
+
 function KpiCard({ metric, accent, catalog, onClick }: { metric: Metric; accent?: boolean; catalog?: boolean; onClick: () => void }) {
-  return <button className={accent ? "kpi-card accent" : "kpi-card"} onClick={onClick} aria-label={catalog ? `展开${metric.label}列表` : `查看${metric.label}口径说明`} title={catalog ? `展开${metric.label}列表` : `口径：${metric.definition}`}><span className="kpi-label">{metric.label}{catalog ? <List size={14} /> : <Question size={14} />}</span><div><strong>{metric.value}</strong><span className={metric.changeTone === "negative" ? "change negative" : "change positive"}>{metric.changeTone === "negative" ? <ArrowDownRight /> : <ArrowUpRight />}{metric.change}</span></div><p>{metric.note}</p></button>;
+  return <button className={accent ? "kpi-card accent" : "kpi-card"} onClick={onClick} aria-label={catalog ? `展开${metric.label}列表` : `查看${metric.label}口径说明`} title={catalog ? `展开${metric.label}列表` : `口径：${metric.definition}`}><span className="kpi-label">{metric.label}{catalog ? <List size={14} /> : <Question size={14} />}</span><div><strong>{metric.value}</strong>{metric.secondaryValue && <b className="kpi-inline-secondary">{metric.secondaryLabel} {metric.secondaryValue}</b>}<span className={metric.changeTone === "negative" ? "change negative" : "change positive"}>{metric.changeTone === "negative" ? <ArrowDownRight /> : <ArrowUpRight />}{metric.change}</span></div><p>{metric.note}</p></button>;
 }
 
 function PanelHeader({ title, meta, action }: { title: string; meta: string; action: React.ReactNode }) {
@@ -294,28 +392,18 @@ function PanelHeader({ title, meta, action }: { title: string; meta: string; act
 }
 
 function Funnel({ stages, onSelect }: { stages: FunnelStage[]; onSelect: (stage: FunnelStage) => void }) {
-  return <div className="funnel-scroll"><div className="funnel" role="list" aria-label="十一阶段增长链路">{stages.map((stage, index) => <div className="funnel-step" role="listitem" key={stage.id}><button className={stage.id === "first-run" || stage.id === "second-route" ? "stage-box alerted" : "stage-box"} onClick={() => onSelect(stage)}><span>{String(index + 1).padStart(2, "0")}</span><b>{stage.name}</b><strong>{formatNumber(stage.value)}</strong></button>{index < stages.length - 1 && <div className={stage.id === "activate" || stage.id === "first-route" ? "funnel-rate risk" : "funnel-rate"}><small>{stages[index + 1].rate}%</small><ArrowRight /></div>}</div>)}</div></div>;
-}
-
-function SortableTh({ label, field, active, onSort }: { label: string; field: keyof ChannelPerformance; active: keyof ChannelPerformance; onSort: (field: keyof ChannelPerformance) => void }) {
-  return <th><button className={active === field ? "sort active" : "sort"} onClick={() => onSort(field)}>{label}<CaretDown /></button></th>;
-}
-
-function ChannelMark({ name }: { name: string }) {
-  const content = name === "抖音" ? <FaTiktok /> : <ShoppingCart weight="fill" />;
-  return <span className={`channel-mark ${name}`}>{content}</span>;
-}
-
-function StatusTag({ status }: { status: ChannelPerformance["status"] }) {
-  return <span className={`status-tag ${status}`}>{status === "健康" && <CheckCircle weight="fill" />}{status === "异常" && <WarningCircle weight="fill" />}{status}</span>;
+  return <div className="funnel-scroll"><div className="funnel" role="list" aria-label="十阶段增长链路">{stages.map((stage, index) => <div className="funnel-step" role="listitem" key={stage.id}><button className={stage.id === "first-run" || stage.id === "second-route" ? "stage-box alerted" : "stage-box"} onClick={() => onSelect(stage)}><span>{String(index + 1).padStart(2, "0")}</span><b>{stage.name}</b><strong>{formatNumber(stage.value)}</strong></button>{index < stages.length - 1 && <div className={stage.id === "activate" || stage.id === "first-route" ? "funnel-rate risk" : "funnel-rate"}><small>{stages[index + 1].rate}%</small><ArrowRight /></div>}</div>)}</div></div>;
 }
 
 type BusinessModuleTarget = { path: string; label: string };
 
 const businessModuleTargets: Record<string, BusinessModuleTarget> = {
   sales: { path: "/sales", label: "进入销售中心" },
+  "total-machines": { path: "/devices", label: "进入设备中心" },
   "sales-volume": { path: "/sales", label: "进入销售中心" },
   activation: { path: "/devices", label: "进入设备中心" },
+  "device-d7-active": { path: "/devices", label: "进入设备中心" },
+  "active-devices": { path: "/devices", label: "进入设备中心" },
   retention: { path: "/users", label: "进入用户中心" },
   "active-users": { path: "/users", label: "进入用户中心" },
   register: { path: "/users", label: "进入用户中心" },
@@ -326,7 +414,6 @@ const businessModuleTargets: Record<string, BusinessModuleTarget> = {
   "continuous-route": { path: "/explore", label: "进入探索中心" },
   "unlock-city": { path: "/explore", label: "进入探索中心" },
   "explore-cities": { path: "/explore", label: "进入探索中心" },
-  subscription: { path: "/commercial", label: "进入商业中心" },
   "long-retention": { path: "/users", label: "进入用户中心" },
 };
 
@@ -337,7 +424,8 @@ export function getBusinessModuleTarget(id: string | undefined) {
 function DetailDrawer({ stage, metric, onClose, navigate }: { stage: FunnelStage | null; metric: Metric | null; onClose: () => void; navigate?: (path: string) => void }) {
   const title = stage?.name ?? metric?.label ?? "指标详情";
   const target = getBusinessModuleTarget(stage?.id ?? metric?.id);
-  return <div className="drawer-layer"><button className="drawer-scrim" aria-label="关闭详情" onClick={onClose} /><aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title"><button className="drawer-close" onClick={onClose} aria-label="关闭"><X /></button><div className="drawer-head"><span>指标下钻</span><h2 id="drawer-title">{title}</h2><p>{stage?.definition ?? metric?.definition}</p></div>{stage ? <><div className="drawer-number"><span>当前数量</span><strong>{formatNumber(stage.value)}</strong><small>上一步转化 {stage.rate}%</small></div><div className="definition-card"><Info /><div><b>统计范围</b><p>该阶段按全部销售来源汇总，不按渠道拆分。</p></div></div></> : <><div className="drawer-number"><span>当前值</span><strong>{metric?.value}</strong><small>{metric?.change} · 较上期</small></div><div className="definition-card"><Info /><div><b>口径说明</b><p>{metric?.definition}</p></div></div></>}{target && navigate && <button className="primary-button full" onClick={() => { navigate(target.path); onClose(); }}>{target.label} <ArrowRight /></button>}</aside></div>;
+  const stageScope = stage?.scope ?? "该阶段按当前筛选时间统计。";
+  return <div className="drawer-layer"><button className="drawer-scrim" aria-label="关闭详情" onClick={onClose} /><aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title"><button className="drawer-close" onClick={onClose} aria-label="关闭"><X /></button><div className="drawer-head"><span>指标下钻</span><h2 id="drawer-title">{title}</h2><p>{stage?.definition ?? metric?.definition}</p></div>{stage ? <><div className="drawer-number"><span>当前数量</span><strong>{formatNumber(stage.value)}</strong><small>上一步转化 {stage.rate}%</small></div><div className="definition-card"><Info /><div><b>统计范围</b><p>{stageScope}</p></div></div></> : <><div className="drawer-number"><span>当前值</span><strong>{metric?.value}</strong><small>{metric?.change} · 较上期</small></div><div className="definition-card"><Info /><div><b>口径说明</b><p>{metric?.definition}</p></div></div></>}{target && navigate && <button className="primary-button full" onClick={() => { navigate(target.path); onClose(); }}>{target.label} <ArrowRight /></button>}</aside></div>;
 }
 
 type ModuleKey = "sales" | "devices" | "users" | "content" | "explore" | "commercial" | "insights";
@@ -379,6 +467,34 @@ function ModuleDataTable({ data, moduleKey }: { data: ModuleData; moduleKey: Mod
   </article>;
 }
 
+function TrendChartPanel({ data, moduleKey }: { data: ModuleData; moduleKey: ModuleKey }) {
+  const chartMeaning = moduleKey === "devices"
+    ? ["实线：本期新设备激活后产生连接/有效运动的综合比例", "虚线：上期同口径比例，用于环比参考"]
+    : moduleKey === "users"
+      ? ["实线：本期筛选范围内的活跃用户数", "虚线：上期同口径留存用户数，用于观察留存变化"]
+      : null;
+  return <article className={chartMeaning ? "panel chart-panel annotated-chart-panel" : "panel chart-panel"}>
+    <PanelHeader title={data.chartTitle} meta={`本期与上期环比 · 单位：${data.chartUnit}`} action={<ChartLineUp />} />
+    {chartMeaning && <div className="chart-meaning" aria-label={`${data.chartTitle}图表含义`}>
+      <span><i className="current" />{chartMeaning[0]}</span>
+      <span><i className="previous" />{chartMeaning[1]}</span>
+    </div>}
+    <div className="chart-wrap" role="img" aria-label={`${data.chartTitle}，本期与上期对比趋势`}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data.trend} margin={{ top: 12, right: 18, left: -18, bottom: 0 }}>
+          <defs><linearGradient id={`fill-${data.title}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d9488" stopOpacity={0.32} /><stop offset="100%" stopColor="#0d9488" stopOpacity={0.02} /></linearGradient></defs>
+          <CartesianGrid vertical={false} stroke="#e8edf3" />
+          <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} />
+          <YAxis tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} />
+          <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #dce4ed", boxShadow: "0 10px 30px rgba(15,23,42,.1)" }} />
+          <Area type="monotone" dataKey="value" name={`本期（${data.chartUnit}）`} stroke="#0d9488" strokeWidth={2.5} fill={`url(#fill-${data.title})`} />
+          <Line type="monotone" dataKey="secondary" name={`上期（${data.chartUnit}）`} stroke="#94a3b8" strokeDasharray="4 4" dot={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  </article>;
+}
+
 function ModulePage({ moduleKey, filters, loader }: { moduleKey: ModuleKey; filters: ReportFilters; loader: (filters: ReportFilters) => Promise<DataResult<ModuleData>> }) {
   const stableLoader = useMemo(() => loader, [loader]);
   const result = useData(filters, stableLoader);
@@ -391,7 +507,7 @@ function ModulePage({ moduleKey, filters, loader }: { moduleKey: ModuleKey; filt
     <DataState status={result.status} />
     <section className="module-hero"><div><h2>{data.title}</h2><p>{data.description}</p></div><div className="quality-chip"><SealCheck weight="fill" /><div><b>数据可用</b><span>截止 {result.asOf}</span></div></div></section>
     <section className={moduleKey === "users" ? "kpi-grid module-kpis user-kpis" : "kpi-grid module-kpis"}>{data.metrics.map((item) => <KpiCard key={item.id} metric={item} catalog={moduleKey === "content" && (item.id === "cities" || item.id === "routes")} onClick={() => setSelectedMetric(item)} />)}</section>
-    <section className="module-charts"><article className="panel chart-panel"><PanelHeader title={data.chartTitle} meta={`本期与上期环比 · 单位：${data.chartUnit}`} action={<ChartLineUp />} /><div className="chart-wrap" role="img" aria-label={`${data.chartTitle}，本期与上期对比趋势`}><ResponsiveContainer width="100%" height="100%"><AreaChart data={data.trend} margin={{ top: 12, right: 18, left: -18, bottom: 0 }}><defs><linearGradient id={`fill-${data.title}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d9488" stopOpacity={0.32} /><stop offset="100%" stopColor="#0d9488" stopOpacity={0.02} /></linearGradient></defs><CartesianGrid vertical={false} stroke="#e8edf3" /><XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} /><YAxis tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} /><Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #dce4ed", boxShadow: "0 10px 30px rgba(15,23,42,.1)" }} /><Area type="monotone" dataKey="value" name={`本期（${data.chartUnit}）`} stroke="#0d9488" strokeWidth={2.5} fill={`url(#fill-${data.title})`} /><Line type="monotone" dataKey="secondary" name={`上期（${data.chartUnit}）`} stroke="#94a3b8" strokeDasharray="4 4" dot={false} /></AreaChart></ResponsiveContainer></div></article>{moduleKey === "users" ? <UserTimeHeatmap /> : <article className="panel donut-panel"><PanelHeader title={data.distributionTitle} meta="当前筛选范围" action={<Info />} /><div className="donut-wrap"><div className="pie-area" role="img" aria-label={`${data.distributionTitle}环形图`}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data.distribution} dataKey="value" nameKey="name" innerRadius={48} outerRadius={72} paddingAngle={3}>{data.distribution.map((_, index) => <Cell key={index} fill={pieColors[index % pieColors.length]} />)}</Pie><Tooltip formatter={(value) => `${value}${data.distributionUnit ?? "%"}`} /></PieChart></ResponsiveContainer><div className="pie-center"><b>{moduleKey === "content" ? data.distribution.reduce((sum, item) => sum + item.value, 0) : data.distribution.length}</b><span>{moduleKey === "content" ? "座城市" : "类"}</span></div></div><ul className="legend-list">{data.distribution.map((item, index) => <li key={item.name}><i style={{ background: pieColors[index % pieColors.length] }} /><span>{item.name}</span><b>{item.value}{data.distributionUnit ?? "%"}</b></li>)}</ul></div></article>}</section>
+    <section className="module-charts"><TrendChartPanel data={data} moduleKey={moduleKey} />{moduleKey === "users" ? <UserTimeHeatmap /> : <article className="panel donut-panel"><PanelHeader title={data.distributionTitle} meta="当前筛选范围" action={<Info />} /><div className="donut-wrap"><div className="pie-area" role="img" aria-label={`${data.distributionTitle}环形图`}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data.distribution} dataKey="value" nameKey="name" innerRadius={48} outerRadius={72} paddingAngle={3}>{data.distribution.map((_, index) => <Cell key={index} fill={pieColors[index % pieColors.length]} />)}</Pie><Tooltip formatter={(value) => `${value}${data.distributionUnit ?? "%"}`} /></PieChart></ResponsiveContainer><div className="pie-center"><b>{moduleKey === "content" ? data.distribution.reduce((sum, item) => sum + item.value, 0) : data.distribution.length}</b><span>{moduleKey === "content" ? "座城市" : "类"}</span></div></div><ul className="legend-list">{data.distribution.map((item, index) => <li key={item.name}><i style={{ background: pieColors[index % pieColors.length] }} /><span>{item.name}</span><b>{item.value}{data.distributionUnit ?? "%"}</b></li>)}</ul></div></article>}</section>
     {moduleKey !== "devices" && moduleKey !== "content" && <section className="module-bottom"><ModuleDataTable data={data} moduleKey={moduleKey} /><aside className="signal-list">{data.notes.map((note) => <article key={note.title} className={`signal ${note.tone}`}><span>{note.tone === "red" ? <WarningCircle /> : note.tone === "teal" ? <TrendUp /> : <Info />}</span><div><h3>{note.title}</h3><p>{note.text}</p></div></article>)}<button className="back-button" onClick={() => navigate(`/dashboard?${new URLSearchParams(filters as unknown as Record<string, string>).toString()}`)}><ArrowRight />返回数据概览</button></aside></section>}
     <DeepDiveSections moduleKey={moduleKey} moduleData={data} />
     <footer className="module-foot"><span>{result.definition}</span><span>{result.source}</span></footer>

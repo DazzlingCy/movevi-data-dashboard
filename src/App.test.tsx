@@ -19,7 +19,6 @@ describe("MOVEVI dashboard", () => {
 
     expect(await screen.findByRole("heading", { name: "一机一档完整字段表" })).toBeInTheDocument();
     expect(window.location.pathname).toBe("/devices");
-    expect(window.location.search).toContain("product=TS3PRO");
 
     await userEvent.keyboard("{Control>}k{/Control}");
     const reopened = await screen.findByRole("dialog", { name: "全局搜索" });
@@ -34,18 +33,99 @@ describe("MOVEVI dashboard", () => {
   it("renders all routes and opens a keyboard-operable funnel drilldown", async () => {
     window.history.pushState({}, "", "/dashboard");
     render(<App />);
-    expect(await screen.findByText("本月运动用户")).toBeInTheDocument();
+    expect(await screen.findByText("总机器数量")).toBeInTheDocument();
+    expect(screen.getByText("销售量")).toBeInTheDocument();
+    expect(screen.getByText("新设备激活率")).toBeInTheDocument();
+    expect(screen.getByText("新设备七日活跃率")).toBeInTheDocument();
+    expect(screen.getByText("运动设备")).toBeInTheDocument();
+    expect(screen.getByText("2026年8月 · 2026/08/01 至 2026/08/31")).toBeInTheDocument();
+    expect(screen.queryByLabelText("地区")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("型号")).toBeInTheDocument();
+    expect(screen.getByText("激活率 82.8%")).toBeInTheDocument();
+    expect(screen.getByText("活跃率 56.4%")).toBeInTheDocument();
     expect(screen.queryByText("AI 经营判断")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "跑遍全球" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "内容中心" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "探索中心" })).toBeInTheDocument();
+    expect(screen.queryByText("销售渠道概览")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "核心业务概览" })).toBeInTheDocument();
+    expect(screen.getByText("看设备是否真正被激活、连接和持续使用。")).toBeInTheDocument();
+    expect(screen.getByText("看新增、活跃、留存是否形成运动习惯。")).toBeInTheDocument();
+    expect(screen.getByText("看城市、路线和探索内容有没有被真实跑完。")).toBeInTheDocument();
+    expect(screen.getByText("设备使用率")).toBeInTheDocument();
+    expect(screen.getByText("2026年8月 · 完成 App 绑定")).toBeInTheDocument();
+    expect(screen.getByText("2026年8月 · 有连接/运动")).toBeInTheDocument();
+    expect(screen.getByText("2026年8月 · 新注册")).toBeInTheDocument();
+    expect(screen.getByText("2026年8月 · 7日后活跃用户")).toBeInTheDocument();
+    expect(screen.getByText("完成城市数量")).toBeInTheDocument();
+    expect(screen.getByText("完成城市用户数")).toBeInTheDocument();
+    expect(screen.getByText("完成路线数量")).toBeInTheDocument();
+    expect(screen.getByText("完成路线用户数")).toBeInTheDocument();
+    expect(screen.getByText("路线完播率")).toBeInTheDocument();
+    expect(screen.getByText("平均播放时长")).toBeInTheDocument();
+    expect(screen.getByText("2026年8月 · 完整跑完路线")).toBeInTheDocument();
+    expect(screen.getByText("2026年8月 · 单次路线播放")).toBeInTheDocument();
+    expect(screen.queryByText("近 30 日有连接")).not.toBeInTheDocument();
+    expect(screen.queryByText("近 90 日有启动")).not.toBeInTheDocument();
+    expect(screen.queryByText("上线路线 1,248 条")).not.toBeInTheDocument();
+    expect(screen.queryByText("有效城市 72 个")).not.toBeInTheDocument();
+    expect(screen.getByText("看活动是否带动路线完成、勋章消耗和用户回访。")).toBeInTheDocument();
     const stage = (await screen.findAllByRole("button", { name: /首次运动/ }))[0];
     stage.focus();
     await userEvent.keyboard("{Enter}");
-    expect(await screen.findByRole("dialog")).toHaveTextContent("设备激活后 7 日内产生首个有效运动记录");
+    expect(await screen.findByRole("dialog")).toHaveTextContent("筛选时间内首次产生有效运动记录");
     await userEvent.click(screen.getByRole("button", { name: "关闭" }));
     await userEvent.click(screen.getByRole("link", { name: /设备中心/ }));
     expect(await screen.findByRole("heading", { name: "一机一档完整字段表" })).toBeInTheDocument();
+  });
+
+  it("removes stale region filters from the report toolbar and url", async () => {
+    window.history.pushState({}, "", "/dashboard?region=%E5%8D%8E%E4%B8%9C&product=TS3PRO");
+    render(<App />);
+    expect(await screen.findByText("总机器数量")).toBeInTheDocument();
+    expect(screen.queryByLabelText("地区")).not.toBeInTheDocument();
+    await waitFor(() => expect(window.location.search).not.toContain("region="));
+    expect(window.location.search).toContain("product=TS3PRO");
+  });
+
+  it("uses dashboard period filters and reflects the selected period in KPI notes", async () => {
+    window.history.pushState({}, "", "/dashboard?from=2026-08-27&to=2026-09-02");
+    render(<App />);
+    expect(await screen.findByText("总机器数量")).toBeInTheDocument();
+    await waitFor(() => expect(window.location.search).not.toContain("from="));
+    expect(screen.getByLabelText("周期类型")).toHaveValue("month");
+    await userEvent.selectOptions(screen.getByLabelText("周期类型"), "quarter");
+    expect(await screen.findByLabelText("周期值")).toHaveValue("2026-Q3");
+    expect(await screen.findByText("2026年第3季度 · 2026/07/01 至 2026/09/02")).toBeInTheDocument();
+    expect(screen.getAllByText("2026年第3季度 · 确认收货").length).toBeGreaterThan(0);
+    await userEvent.selectOptions(screen.getByLabelText("型号"), "TS3PRO");
+    expect(window.location.search).toContain("product=TS3PRO");
+  });
+
+  it("defines sales volume as confirmed-receipt devices in dashboard drilldown", async () => {
+    window.history.pushState({}, "", "/dashboard");
+    render(<App />);
+    const salesVolume = (await screen.findAllByRole("button", { name: /销量/ }))[0];
+    await userEvent.click(salesVolume);
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("确认收货后的有效设备数量");
+    expect(dialog).toHaveTextContent("已确认收货且未全额退款订单中的设备数量");
+  });
+
+  it("uses stage-specific statistic scopes for the growth funnel", async () => {
+    window.history.pushState({}, "", "/dashboard");
+    render(<App />);
+    const register = (await screen.findAllByRole("button", { name: /注册/ }))[0];
+    await userEvent.click(register);
+    let dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("筛选时间内完成 MOVEVI App 账号注册的去重账号数量");
+    expect(dialog).not.toHaveTextContent("全部销售来源汇总");
+    await userEvent.click(within(dialog).getByRole("button", { name: "关闭" }));
+
+    const city = (await screen.findAllByRole("button", { name: /完成一座城市/ }))[0];
+    await userEvent.click(city);
+    dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("筛选时间内完成至少一座城市核心路线并达成城市完成条件");
   });
 
   it("keeps the channel filter exclusive to sales", async () => {
@@ -68,9 +148,23 @@ describe("MOVEVI dashboard", () => {
   it("has no serious accessibility violations on the executive route", async () => {
     window.history.pushState({}, "", "/dashboard");
     const { container } = render(<App />);
-    await screen.findByText("销售渠道概览");
+    await screen.findByText("核心业务概览");
     const results = await axe(container, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.filter((item) => ["serious", "critical"].includes(item.impact ?? ""))).toHaveLength(0);
+  });
+
+  it("replaces the dashboard sales channel table with valid core module entries", async () => {
+    window.history.pushState({}, "", "/dashboard");
+    const { unmount } = render(<App />);
+    expect(await screen.findByRole("heading", { name: "核心业务概览" })).toBeInTheDocument();
+    expect(screen.queryByText("销售渠道概览")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "进入设备中心" }));
+    expect(await screen.findByRole("heading", { name: "一机一档完整字段表" })).toBeInTheDocument();
+    unmount();
+    window.history.pushState({}, "", "/dashboard");
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "进入活动中心" }));
+    expect(await screen.findByRole("heading", { name: "勋章抽奖" })).toBeInTheDocument();
   });
 
   it("exposes the complete executive metric panorama", async () => {
@@ -113,7 +207,7 @@ describe("MOVEVI dashboard", () => {
     expect(screen.getByText("新增用户趋势")).toBeInTheDocument();
     expect(screen.getAllByText("新用户分批次首周表现").length).toBeGreaterThan(0);
     expect(screen.getAllByText("新增注册").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("D7留存").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("7日后活跃").length).toBeGreaterThan(0);
   });
 
   it("expands complete content catalogs and paginates route performance", async () => {
@@ -214,8 +308,11 @@ describe("MOVEVI dashboard", () => {
 
   it("maps dashboard drilldowns to the correct business modules", () => {
     expect(getBusinessModuleTarget("sales")).toEqual({ path: "/sales", label: "进入销售中心" });
-    expect(getBusinessModuleTarget("sales-volume")).toEqual({ path: "/sales", label: "进入销售中心" });
-    expect(getBusinessModuleTarget("activation")).toEqual({ path: "/devices", label: "进入设备中心" });
+    expect(getBusinessModuleTarget("total-machines")).toEqual({ path: "/devices", label: "进入设备中心" });
+  expect(getBusinessModuleTarget("sales-volume")).toEqual({ path: "/sales", label: "进入销售中心" });
+  expect(getBusinessModuleTarget("activation")).toEqual({ path: "/devices", label: "进入设备中心" });
+  expect(getBusinessModuleTarget("device-d7-active")).toEqual({ path: "/devices", label: "进入设备中心" });
+    expect(getBusinessModuleTarget("active-devices")).toEqual({ path: "/devices", label: "进入设备中心" });
     expect(getBusinessModuleTarget("activate")).toEqual({ path: "/devices", label: "进入设备中心" });
     expect(getBusinessModuleTarget("register")).toEqual({ path: "/users", label: "进入用户中心" });
     expect(getBusinessModuleTarget("first-run")).toEqual({ path: "/users", label: "进入用户中心" });
@@ -226,7 +323,6 @@ describe("MOVEVI dashboard", () => {
     expect(getBusinessModuleTarget("continuous-route")).toEqual({ path: "/explore", label: "进入探索中心" });
     expect(getBusinessModuleTarget("unlock-city")).toEqual({ path: "/explore", label: "进入探索中心" });
     expect(getBusinessModuleTarget("explore-cities")).toEqual({ path: "/explore", label: "进入探索中心" });
-    expect(getBusinessModuleTarget("subscription")).toEqual({ path: "/commercial", label: "进入商业中心" });
     expect(getBusinessModuleTarget("long-retention")).toEqual({ path: "/users", label: "进入用户中心" });
     expect(getBusinessModuleTarget("unknown")).toBeUndefined();
   });
@@ -236,7 +332,8 @@ describe("MOVEVI dashboard", () => {
     render(<App />);
     const firstRun = (await screen.findAllByRole("button", { name: /首次运动/ }))[0];
     await userEvent.click(firstRun);
-    await userEvent.click(screen.getByRole("button", { name: "进入用户中心" }));
+    const drilldown = await screen.findByRole("dialog");
+    await userEvent.click(within(drilldown).getByRole("button", { name: "进入用户中心" }));
     expect(await screen.findByText("用户频次与生命周期")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "查看DAU口径说明" }));
@@ -246,7 +343,7 @@ describe("MOVEVI dashboard", () => {
   });
 
   it("opens an accessible date range popover and applies quick ranges", async () => {
-    window.history.pushState({}, "", "/dashboard");
+    window.history.pushState({}, "", "/users");
     render(<App />);
     const trigger = await screen.findByRole("button", { name: /选择日期范围，当前 2026\/08\/01 至 2026\/09\/02/ });
     await userEvent.click(trigger);
@@ -288,6 +385,8 @@ describe("MOVEVI dashboard", () => {
     expect(activation).toHaveTextContent("销售");
     expect(activation).toHaveTextContent("注册");
     expect(activation).not.toHaveTextContent("收货");
+    expect(screen.getByText("实线：本期新设备激活后产生连接/有效运动的综合比例")).toBeInTheDocument();
+    expect(screen.getByText("虚线：上期同口径比例，用于环比参考")).toBeInTheDocument();
 
     unmount();
     window.history.pushState({}, "", "/users");
@@ -297,6 +396,8 @@ describe("MOVEVI dashboard", () => {
     expect(screen.queryByText("月运动里程")).not.toBeInTheDocument();
     expect(screen.queryByText("月运动时长")).not.toBeInTheDocument();
     expect(screen.getByText("本期与上期环比 · 单位：人")).toBeInTheDocument();
+    expect(screen.getByText("实线：本期筛选范围内的活跃用户数")).toBeInTheDocument();
+    expect(screen.getByText("虚线：上期同口径留存用户数，用于观察留存变化")).toBeInTheDocument();
     expect(await screen.findByRole("img", { name: /星期与三小时时段运动分布热力图/ })).toBeInTheDocument();
     expect(screen.getByTitle("周三 18–21：33%")).toBeInTheDocument();
     ["00–03", "03–06", "06–09", "09–12", "12–15", "15–18", "18–21", "21–24"].forEach((time) => expect(screen.getByText(time)).toBeInTheDocument());
