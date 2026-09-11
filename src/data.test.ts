@@ -41,6 +41,10 @@ describe("MockDataProvider", () => {
 
   it("provides a complete searchable device ledger", async () => {
     const result = await dataProvider.getDeviceCenter(defaultFilters);
+    expect(result.data.description).toBe("从销售到激活、使用的完整状态。");
+    expect(result.data.metrics.map((metric) => metric.label)).toEqual(["销售设备", "已激活设备", "激活率", "30日使用率", "沉默设备"]);
+    expect(result.data.chartTitle).toBe("销售和激活");
+    expect(result.data.distributionDefinitions?.map((item) => item.name)).toEqual(["活跃", "低频", "沉默", "故障"]);
     expect(result.data.sectionTitle).toBe("一机一档完整字段表");
     expect(result.data.columns).toHaveLength(16);
     expect(result.data.columns).toEqual(expect.arrayContaining(["设备唯一 ID", "出厂时间", "销售时间", "绑定用户", "激活时间", "首次连接", "最近连接", "30日连接", "累计运动", "累计时长", "累计里程", "故障记录", "固件版本", "APP版本", "状态"]));

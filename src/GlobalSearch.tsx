@@ -29,7 +29,7 @@ export const globalSearchItems: SearchItem[] = [
   { id: "sales-revenue", title: "销售额与销售量", description: "查看核心销售指标、环比与日趋势", module: "销售中心", path: "/sales", keywords: ["销售额", "销售量", "销量", "成交金额", "有效订单"], icon: ChartLineUp },
   { id: "sales-funnel", title: "完整销售漏斗", description: "曝光、点击、咨询、加购、下单、支付、发货与退款", module: "销售中心", path: "/sales", keywords: ["转化率", "退款率", "渠道漏斗"], icon: ShoppingCart },
   { id: "channel-quality", title: "渠道质量", description: "比较抖音、天猫、京东和拼多多的销售质量", module: "销售中心", path: "/sales", keywords: ["抖音", "天猫", "京东", "拼多多", "退货率", "客单价"], icon: ShoppingCart },
-  { id: "activation", title: "设备激活率", description: "查看设备激活、成功连接和首次使用漏斗", module: "设备中心", path: "/devices", keywords: ["激活", "APP绑定", "首次连接", "首跑"], icon: DeviceMobile },
+  { id: "activation", title: "设备激活率", description: "查看设备激活、首次使用和持续使用漏斗", module: "设备中心", path: "/devices", keywords: ["激活", "APP绑定", "首跑", "D30使用"], icon: DeviceMobile },
   { id: "device-ledger", title: "一机一档", description: "搜索设备、用户、型号、固件、连接与故障记录", module: "设备中心", path: "/devices", keywords: ["设备SN", "累计运动", "累计时长", "累计里程", "最近连接", "30日连接"], icon: DeviceMobile },
   { id: "retention", title: "用户留存", description: "查看 D1–D90 留存和活跃用户趋势", module: "用户中心", path: "/users", keywords: ["D1", "D7", "D30", "D90", "留存率"], icon: UsersThree },
   { id: "time-heatmap", title: "运动时段热力图", description: "按星期和 3 小时时段查看运动分布", module: "用户中心", path: "/users", keywords: ["运动时段", "热力", "18-21", "活跃时间"], icon: UsersThree },

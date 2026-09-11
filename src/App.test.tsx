@@ -384,9 +384,20 @@ describe("MOVEVI dashboard", () => {
     const activation = (await screen.findByRole("heading", { name: "设备激活与首次使用漏斗" })).closest("section");
     expect(activation).toHaveTextContent("销售");
     expect(activation).toHaveTextContent("注册");
+    expect(activation).toHaveTextContent("D30 使用");
+    expect(activation).not.toHaveTextContent("成功连接");
     expect(activation).not.toHaveTextContent("收货");
-    expect(screen.getByText("实线：本期新设备激活后产生连接/有效运动的综合比例")).toBeInTheDocument();
-    expect(screen.getByText("虚线：上期同口径比例，用于环比参考")).toBeInTheDocument();
+    expect(screen.getByText("销售设备")).toBeInTheDocument();
+    expect(screen.getByText("激活率")).toBeInTheDocument();
+    expect(screen.getByText("销售和激活")).toBeInTheDocument();
+    expect(screen.getByText("实线：销售量")).toBeInTheDocument();
+    expect(screen.getByText("虚线：激活量")).toBeInTheDocument();
+    expect(screen.queryByText("本期与上期环比 · 单位：%")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "定义说明" }));
+    expect(await screen.findByRole("dialog", { name: "设备状态定义" })).toBeInTheDocument();
+    expect(screen.getByText("近 30 日有连接且完成过一条路线以上的设备。")).toBeInTheDocument();
+    expect(screen.getByText("近 30 日有连接或运动记录，但未完成过路线的设备。")).toBeInTheDocument();
+    expect(screen.getByText("近 30 日无连接且无有效运动记录的设备。")).toBeInTheDocument();
 
     unmount();
     window.history.pushState({}, "", "/users");

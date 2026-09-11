@@ -88,6 +88,7 @@ export type ModuleData = {
   chartUnit: string;
   distribution: { name: string; value: number; color?: string }[];
   distributionTitle: string;
+  distributionDefinitions?: { name: string; definition: string }[];
   distributionUnit?: string;
   columns: string[];
   rows: (string | number)[][];
@@ -261,8 +262,9 @@ const metricDefinitions: Record<string, string> = {
   "销量": "筛选周期内的有效销售设备数量。",
   "客单价": "销售额 ÷ 支付成功订单数。",
   "退货率": "完成退货退款的订单数 ÷ 支付成功订单数。",
+  "销售设备": "筛选周期内的有效销售设备数量。",
   "已激活设备": "已成功绑定 MOVEVI App 的去重设备数，设备激活与 App 绑定为同一状态。",
-  "7日激活率": "签收后 7 日内成功绑定 MOVEVI App 的设备数 ÷ 已签收设备数。",
+  "激活率": "筛选周期内已激活设备数 ÷ 同期销售设备数。",
   "30日使用率": "近 30 日至少产生 1 次有效运动记录的设备数 ÷ 累计激活设备数。",
   "沉默设备": "累计激活设备中，近 30 日未产生连接记录且未产生有效运动记录的去重设备数量。",
   "DAU": "自然日内至少产生 1 次有效运动或路线行为的去重 MOVEVI App 用户数。",
@@ -343,10 +345,16 @@ const modules: Record<string, ModuleData> = {
     notes: [{ title: "华东贡献增长主力", text: "上海、杭州、苏州贡献新增销售额的 41%。", tone: "teal" }, { title: "抖音退货需关注", text: "退货率 7.4%，主要集中在未激活用户。", tone: "red" }],
   },
   devices: {
-    title: "设备中心", description: "看清每一台设备从签收到激活、连接、使用和故障的完整状态。",
-    metrics: [metric("activated", "已激活设备", "30,563 台", 30563, "+6.2%", "累计激活"), metric("rate", "7日激活率", "82.8%", 82.8, "-3.4pp", "签收设备口径", "negative"), metric("usage", "30日使用率", "63.6%", 63.6, "+2.1pp", "近 30 日有连接"), metric("silent", "沉默设备", "3,973 台", 3973, "-0.4pp", "近 30 日无连接/运动")],
-    trend: trend([71, 74, 76, 80, 79, 83, 82, 86, 88]), chartTitle: "设备激活与连接趋势", chartUnit: "%",
+    title: "设备中心", description: "从销售到激活、使用的完整状态。",
+    metrics: [metric("sold", "销售设备", "36,887 台", 36887, "+8.6%", "筛选时间内销售"), metric("activated", "已激活设备", "30,563 台", 30563, "+6.2%", "累计激活"), metric("rate", "激活率", "82.8%", 82.8, "-3.4pp", "销售设备口径", "negative"), metric("usage", "30日使用率", "63.6%", 63.6, "+2.1pp", "近 30 日有使用"), metric("silent", "沉默设备", "3,973 台", 3973, "-0.4pp", "近 30 日无连接/运动")],
+    trend: trend([71, 74, 76, 80, 79, 83, 82, 86, 88]), chartTitle: "销售和激活", chartUnit: "%",
     distribution: [{ name: "活跃", value: 64 }, { name: "低频", value: 21 }, { name: "沉默", value: 13 }, { name: "故障", value: 2 }], distributionTitle: "设备状态分布",
+    distributionDefinitions: [
+      { name: "活跃", definition: "近 30 日有连接且完成过一条路线以上的设备。" },
+      { name: "低频", definition: "近 30 日有连接或运动记录，但未完成过路线的设备。" },
+      { name: "沉默", definition: "近 30 日无连接且无有效运动记录的设备。" },
+      { name: "故障", definition: "存在未关闭故障记录或需售后处理的设备。" },
+    ],
     columns: ["设备唯一 ID", "型号", "出厂时间", "销售时间", "绑定用户", "激活时间", "首次连接", "最近连接", "30日连接", "累计运动", "累计时长", "累计里程", "故障记录", "固件版本", "APP版本", "状态"],
     rows: ([
       ["MV26-884201", "TS3PRO", "v3.8.2", "2026-04-18", "今天 09:42", "48 次", "126 次", "186h", "1,284 km", 0, "MVU-2458", "活跃"],

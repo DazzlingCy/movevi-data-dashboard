@@ -21,7 +21,7 @@ export function ExecutivePanorama({ open, onClose }: { open: boolean; onClose: (
 }
 
 const salesFunnel = [["曝光",978120],["点击",212680],["咨询",128340],["加购",81240],["下单",51260],["支付",43285],["发货",42210],["退款",2207]] as const;
-const activationFunnel = [["销售",43285],["注册",36887],["激活",30563],["成功连接",28741],["首次运动",12478],["首条路线",8954],["D7 使用",2770]] as const;
+const activationFunnel = [["销售",43285],["注册",36887],["激活",30563],["首次运动",12478],["首条路线",8954],["D7 使用",2770],["D30 使用",1062]] as const;
 const retention = [{name:"D1",value:49.6},{name:"D3",value:33.8},{name:"D7",value:22.3},{name:"D14",value:17.4},{name:"D30",value:13.8},{name:"D60",value:10.7},{name:"D90",value:8.0}];
 const exitCurve = [{name:"0分",value:100},{name:"5分",value:93},{name:"8分",value:84},{name:"10分",value:81},{name:"15分",value:67},{name:"20分",value:58}];
 
@@ -88,7 +88,7 @@ function DeviceRecordTable({ columns, rows }: { columns: string[]; rows: (string
 }
 
 function DevicesDeepDive({ data }: { data: ModuleData }) {
-  return <><section className="deep-panel"><SectionHead title="设备激活与首次使用漏斗" desc="卖出去不等于真正使用；成功连接与首跑是当前最大断点。" /><MiniFunnel data={activationFunnel} /></section><DeviceRecordTable columns={data.columns} rows={data.rows} /></>;
+  return <><section className="deep-panel"><SectionHead title="设备激活与首次使用漏斗" desc="从销售、注册、激活到首次运动和持续使用，定位当前最大断点。" /><MiniFunnel data={activationFunnel} /></section><DeviceRecordTable columns={data.columns} rows={data.rows} /></>;
 }
 
 function UserDeepDive() {

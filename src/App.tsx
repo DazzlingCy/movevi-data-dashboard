@@ -387,8 +387,8 @@ function KpiCard({ metric, accent, catalog, onClick }: { metric: Metric; accent?
   return <button className={accent ? "kpi-card accent" : "kpi-card"} onClick={onClick} aria-label={catalog ? `展开${metric.label}列表` : `查看${metric.label}口径说明`} title={catalog ? `展开${metric.label}列表` : `口径：${metric.definition}`}><span className="kpi-label">{metric.label}{catalog ? <List size={14} /> : <Question size={14} />}</span><div><strong>{metric.value}</strong>{metric.secondaryValue && <b className="kpi-inline-secondary">{metric.secondaryLabel} {metric.secondaryValue}</b>}<span className={metric.changeTone === "negative" ? "change negative" : "change positive"}>{metric.changeTone === "negative" ? <ArrowDownRight /> : <ArrowUpRight />}{metric.change}</span></div><p>{metric.note}</p></button>;
 }
 
-function PanelHeader({ title, meta, action }: { title: string; meta: string; action: React.ReactNode }) {
-  return <div className="panel-header"><div><h2>{title}</h2><span>{meta}</span></div><div className="panel-action">{action}</div></div>;
+function PanelHeader({ title, meta, action }: { title: string; meta?: string; action: React.ReactNode }) {
+  return <div className="panel-header"><div><h2>{title}</h2>{meta && <span>{meta}</span>}</div><div className="panel-action">{action}</div></div>;
 }
 
 function Funnel({ stages, onSelect }: { stages: FunnelStage[]; onSelect: (stage: FunnelStage) => void }) {
@@ -426,6 +426,10 @@ function DetailDrawer({ stage, metric, onClose, navigate }: { stage: FunnelStage
   const target = getBusinessModuleTarget(stage?.id ?? metric?.id);
   const stageScope = stage?.scope ?? "该阶段按当前筛选时间统计。";
   return <div className="drawer-layer"><button className="drawer-scrim" aria-label="关闭详情" onClick={onClose} /><aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title"><button className="drawer-close" onClick={onClose} aria-label="关闭"><X /></button><div className="drawer-head"><span>指标下钻</span><h2 id="drawer-title">{title}</h2><p>{stage?.definition ?? metric?.definition}</p></div>{stage ? <><div className="drawer-number"><span>当前数量</span><strong>{formatNumber(stage.value)}</strong><small>上一步转化 {stage.rate}%</small></div><div className="definition-card"><Info /><div><b>统计范围</b><p>{stageScope}</p></div></div></> : <><div className="drawer-number"><span>当前值</span><strong>{metric?.value}</strong><small>{metric?.change} · 较上期</small></div><div className="definition-card"><Info /><div><b>口径说明</b><p>{metric?.definition}</p></div></div></>}{target && navigate && <button className="primary-button full" onClick={() => { navigate(target.path); onClose(); }}>{target.label} <ArrowRight /></button>}</aside></div>;
+}
+
+function StatusDefinitionDrawer({ definitions, onClose }: { definitions: NonNullable<ModuleData["distributionDefinitions"]>; onClose: () => void }) {
+  return <div className="drawer-layer"><button className="drawer-scrim" aria-label="关闭设备状态定义" onClick={onClose} /><aside className="drawer status-definition-drawer" role="dialog" aria-modal="true" aria-labelledby="status-definition-title"><button className="drawer-close" onClick={onClose} aria-label="关闭"><X /></button><div className="drawer-head"><span>定义说明</span><h2 id="status-definition-title">设备状态定义</h2><p>说明设备状态分布中各分类的统计含义。</p></div><div className="status-definition-cards">{definitions.map((item) => <article key={item.name}><b>{item.name}</b><p>{item.definition}</p></article>)}</div></aside></div>;
 }
 
 type ModuleKey = "sales" | "devices" | "users" | "content" | "explore" | "commercial" | "insights";
@@ -469,12 +473,14 @@ function ModuleDataTable({ data, moduleKey }: { data: ModuleData; moduleKey: Mod
 
 function TrendChartPanel({ data, moduleKey }: { data: ModuleData; moduleKey: ModuleKey }) {
   const chartMeaning = moduleKey === "devices"
-    ? ["实线：本期新设备激活后产生连接/有效运动的综合比例", "虚线：上期同口径比例，用于环比参考"]
+    ? ["实线：销售量", "虚线：激活量"]
     : moduleKey === "users"
       ? ["实线：本期筛选范围内的活跃用户数", "虚线：上期同口径留存用户数，用于观察留存变化"]
       : null;
+  const primarySeriesName = moduleKey === "devices" ? "销售量" : "本期";
+  const secondarySeriesName = moduleKey === "devices" ? "激活量" : "上期";
   return <article className={chartMeaning ? "panel chart-panel annotated-chart-panel" : "panel chart-panel"}>
-    <PanelHeader title={data.chartTitle} meta={`本期与上期环比 · 单位：${data.chartUnit}`} action={<ChartLineUp />} />
+    <PanelHeader title={data.chartTitle} meta={moduleKey === "devices" ? undefined : `本期与上期环比 · 单位：${data.chartUnit}`} action={<ChartLineUp />} />
     {chartMeaning && <div className="chart-meaning" aria-label={`${data.chartTitle}图表含义`}>
       <span><i className="current" />{chartMeaning[0]}</span>
       <span><i className="previous" />{chartMeaning[1]}</span>
@@ -487,8 +493,8 @@ function TrendChartPanel({ data, moduleKey }: { data: ModuleData; moduleKey: Mod
           <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} />
           <YAxis tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} />
           <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #dce4ed", boxShadow: "0 10px 30px rgba(15,23,42,.1)" }} />
-          <Area type="monotone" dataKey="value" name={`本期（${data.chartUnit}）`} stroke="#0d9488" strokeWidth={2.5} fill={`url(#fill-${data.title})`} />
-          <Line type="monotone" dataKey="secondary" name={`上期（${data.chartUnit}）`} stroke="#94a3b8" strokeDasharray="4 4" dot={false} />
+          <Area type="monotone" dataKey="value" name={`${primarySeriesName}（${data.chartUnit}）`} stroke="#0d9488" strokeWidth={2.5} fill={`url(#fill-${data.title})`} />
+          <Line type="monotone" dataKey="secondary" name={`${secondarySeriesName}（${data.chartUnit}）`} stroke="#94a3b8" strokeDasharray="4 4" dot={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -500,18 +506,20 @@ function ModulePage({ moduleKey, filters, loader }: { moduleKey: ModuleKey; filt
   const result = useData(filters, stableLoader);
   const navigate = useNavigate();
   const [selectedMetric, setSelectedMetric] = useState<Metric | null>(null);
+  const [statusDefinitionsOpen, setStatusDefinitionsOpen] = useState(false);
   if (!result) return <LoadingState />;
   const { data } = result;
   const pieColors = ["#0d9488", "#2563eb", "#f59e0b", "#8b5cf6", "#64748b"];
   return <div className="module-page">
     <DataState status={result.status} />
     <section className="module-hero"><div><h2>{data.title}</h2><p>{data.description}</p></div><div className="quality-chip"><SealCheck weight="fill" /><div><b>数据可用</b><span>截止 {result.asOf}</span></div></div></section>
-    <section className={moduleKey === "users" ? "kpi-grid module-kpis user-kpis" : "kpi-grid module-kpis"}>{data.metrics.map((item) => <KpiCard key={item.id} metric={item} catalog={moduleKey === "content" && (item.id === "cities" || item.id === "routes")} onClick={() => setSelectedMetric(item)} />)}</section>
-    <section className="module-charts"><TrendChartPanel data={data} moduleKey={moduleKey} />{moduleKey === "users" ? <UserTimeHeatmap /> : <article className="panel donut-panel"><PanelHeader title={data.distributionTitle} meta="当前筛选范围" action={<Info />} /><div className="donut-wrap"><div className="pie-area" role="img" aria-label={`${data.distributionTitle}环形图`}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data.distribution} dataKey="value" nameKey="name" innerRadius={48} outerRadius={72} paddingAngle={3}>{data.distribution.map((_, index) => <Cell key={index} fill={pieColors[index % pieColors.length]} />)}</Pie><Tooltip formatter={(value) => `${value}${data.distributionUnit ?? "%"}`} /></PieChart></ResponsiveContainer><div className="pie-center"><b>{moduleKey === "content" ? data.distribution.reduce((sum, item) => sum + item.value, 0) : data.distribution.length}</b><span>{moduleKey === "content" ? "座城市" : "类"}</span></div></div><ul className="legend-list">{data.distribution.map((item, index) => <li key={item.name}><i style={{ background: pieColors[index % pieColors.length] }} /><span>{item.name}</span><b>{item.value}{data.distributionUnit ?? "%"}</b></li>)}</ul></div></article>}</section>
+    <section className={moduleKey === "users" ? "kpi-grid module-kpis user-kpis" : moduleKey === "devices" ? "kpi-grid module-kpis device-kpis" : "kpi-grid module-kpis"}>{data.metrics.map((item) => <KpiCard key={item.id} metric={item} catalog={moduleKey === "content" && (item.id === "cities" || item.id === "routes")} onClick={() => setSelectedMetric(item)} />)}</section>
+    <section className="module-charts"><TrendChartPanel data={data} moduleKey={moduleKey} />{moduleKey === "users" ? <UserTimeHeatmap /> : <article className="panel donut-panel"><PanelHeader title={data.distributionTitle} meta="当前筛选范围" action={moduleKey === "devices" && data.distributionDefinitions ? <button type="button" className="icon-action-button" onClick={() => setStatusDefinitionsOpen(true)}><Question />定义说明</button> : <Info />} /><div className={moduleKey === "devices" ? "donut-wrap device-status-wrap" : "donut-wrap"}><div className="pie-area" role="img" aria-label={`${data.distributionTitle}环形图`}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data.distribution} dataKey="value" nameKey="name" innerRadius={48} outerRadius={72} paddingAngle={3}>{data.distribution.map((_, index) => <Cell key={index} fill={pieColors[index % pieColors.length]} />)}</Pie><Tooltip formatter={(value) => `${value}${data.distributionUnit ?? "%"}`} /></PieChart></ResponsiveContainer><div className="pie-center"><b>{moduleKey === "content" ? data.distribution.reduce((sum, item) => sum + item.value, 0) : data.distribution.length}</b><span>{moduleKey === "content" ? "座城市" : "类"}</span></div></div><ul className="legend-list">{data.distribution.map((item, index) => <li key={item.name}><i style={{ background: pieColors[index % pieColors.length] }} /><span>{item.name}</span><b>{item.value}{data.distributionUnit ?? "%"}</b></li>)}</ul></div></article>}</section>
     {moduleKey !== "devices" && moduleKey !== "content" && <section className="module-bottom"><ModuleDataTable data={data} moduleKey={moduleKey} /><aside className="signal-list">{data.notes.map((note) => <article key={note.title} className={`signal ${note.tone}`}><span>{note.tone === "red" ? <WarningCircle /> : note.tone === "teal" ? <TrendUp /> : <Info />}</span><div><h3>{note.title}</h3><p>{note.text}</p></div></article>)}<button className="back-button" onClick={() => navigate(`/dashboard?${new URLSearchParams(filters as unknown as Record<string, string>).toString()}`)}><ArrowRight />返回数据概览</button></aside></section>}
     <DeepDiveSections moduleKey={moduleKey} moduleData={data} />
     <footer className="module-foot"><span>{result.definition}</span><span>{result.source}</span></footer>
     {selectedMetric && moduleKey === "content" && (selectedMetric.id === "cities" || selectedMetric.id === "routes") ? <ContentCatalogDrawer kind={selectedMetric.id === "cities" ? "cities" : "routes"} onClose={() => setSelectedMetric(null)} /> : selectedMetric && <DetailDrawer stage={null} metric={selectedMetric} onClose={() => setSelectedMetric(null)} />}
+    {statusDefinitionsOpen && data.distributionDefinitions && <StatusDefinitionDrawer definitions={data.distributionDefinitions} onClose={() => setStatusDefinitionsOpen(false)} />}
   </div>;
 }
 
