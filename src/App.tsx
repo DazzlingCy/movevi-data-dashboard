@@ -479,6 +479,7 @@ function TrendChartPanel({ data, moduleKey }: { data: ModuleData; moduleKey: Mod
       : null;
   const primarySeriesName = moduleKey === "devices" ? "销售量" : "本期";
   const secondarySeriesName = moduleKey === "devices" ? "激活量" : "上期";
+  const seriesUnit = moduleKey === "devices" ? "台" : data.chartUnit;
   return <article className={chartMeaning ? "panel chart-panel annotated-chart-panel" : "panel chart-panel"}>
     <PanelHeader title={data.chartTitle} meta={moduleKey === "devices" ? undefined : `本期与上期环比 · 单位：${data.chartUnit}`} action={<ChartLineUp />} />
     {chartMeaning && <div className="chart-meaning" aria-label={`${data.chartTitle}图表含义`}>
@@ -493,8 +494,8 @@ function TrendChartPanel({ data, moduleKey }: { data: ModuleData; moduleKey: Mod
           <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} />
           <YAxis tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} />
           <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #dce4ed", boxShadow: "0 10px 30px rgba(15,23,42,.1)" }} />
-          <Area type="monotone" dataKey="value" name={`${primarySeriesName}（${data.chartUnit}）`} stroke="#0d9488" strokeWidth={2.5} fill={`url(#fill-${data.title})`} />
-          <Line type="monotone" dataKey="secondary" name={`${secondarySeriesName}（${data.chartUnit}）`} stroke="#94a3b8" strokeDasharray="4 4" dot={false} />
+          <Area type="monotone" dataKey="value" name={`${primarySeriesName}（${seriesUnit}）`} stroke="#0d9488" strokeWidth={2.5} fill={`url(#fill-${data.title})`} />
+          <Line type="monotone" dataKey="secondary" name={`${secondarySeriesName}（${seriesUnit}）`} stroke="#94a3b8" strokeDasharray="4 4" dot={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
