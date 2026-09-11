@@ -97,19 +97,19 @@ describe("MOVEVI dashboard", () => {
     await userEvent.selectOptions(screen.getByLabelText("周期类型"), "quarter");
     expect(await screen.findByLabelText("周期值")).toHaveValue("2026-Q3");
     expect(await screen.findByText("2026年第3季度 · 2026/07/01 至 2026/09/02")).toBeInTheDocument();
-    expect(screen.getAllByText("2026年第3季度 · 确认收货").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("2026年第3季度 · 销售设备").length).toBeGreaterThan(0);
     await userEvent.selectOptions(screen.getByLabelText("型号"), "TS3PRO");
     expect(window.location.search).toContain("product=TS3PRO");
   });
 
-  it("defines sales volume as confirmed-receipt devices in dashboard drilldown", async () => {
+  it("defines sales volume as filtered-period sales devices in dashboard drilldown", async () => {
     window.history.pushState({}, "", "/dashboard");
     render(<App />);
     const salesVolume = (await screen.findAllByRole("button", { name: /销量/ }))[0];
     await userEvent.click(salesVolume);
     const dialog = await screen.findByRole("dialog");
-    expect(dialog).toHaveTextContent("确认收货后的有效设备数量");
-    expect(dialog).toHaveTextContent("已确认收货且未全额退款订单中的设备数量");
+    expect(dialog).toHaveTextContent("筛选时间内的销售设备数量");
+    expect(dialog).toHaveTextContent("按有效销售设备数量统计");
   });
 
   it("uses stage-specific statistic scopes for the growth funnel", async () => {

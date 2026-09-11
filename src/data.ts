@@ -171,7 +171,7 @@ export const defaultFilters: ReportFilters = {
 };
 
 const baseFunnel: FunnelStage[] = [
-  ["sales-volume", "销量", 4328, 100, "确认收货后的有效设备数量", "筛选时间内已确认收货且未全额退款订单中的设备数量。"],
+  ["sales-volume", "销量", 4328, 100, "筛选时间内的销售设备数量", "筛选时间内的销售设备数量，按有效销售设备数量统计。"],
   ["register", "注册", 3689, 85.2, "筛选时间内完成 MOVEVI 账号注册", "筛选时间内完成 MOVEVI App 账号注册的去重账号数量。"],
   ["activate", "设备激活", 3056, 82.8, "成功绑定 MOVEVI App 即视为设备激活", "筛选时间内首次完成设备绑定 / App 绑定的去重设备数量，设备激活和 App 绑定为同一状态。"],
   ["first-run", "首次运动", 1248, 40.8, "选择一条路线并开启运动", "筛选时间内首次产生有效运动记录的去重用户数量，有效运动需满足里程和时长基础规则。"],
@@ -187,9 +187,9 @@ const baseFunnel: FunnelStage[] = [
 
 const executive: ExecutiveData = {
   metrics: [
-    { id: "total-machines", label: "总机器数量", value: "48,620 台", raw: 48620, change: "+3.8%", changeTone: "positive", note: "历史累计 · 确认收货销售", definition: "截至数据截止日，历史累计已确认收货且未全额退款的 MOVEVI 销售设备数量。" },
-    { id: "sales-volume", label: "销售量", value: "4,328 台", raw: 4328, change: "+11.2%", changeTone: "positive", note: "2026年8月 · 确认收货", definition: "筛选时间内已确认收货且未全额退款订单中的设备数量。" },
-    { id: "activation", label: "新设备激活率", value: "3,584 台", secondaryLabel: "激活率", secondaryValue: "82.8%", raw: 3584, change: "-3.4pp", changeTone: "negative", note: "2026年8月 · 首次绑定", definition: "筛选时间内新销售设备中首次完成设备绑定 / App 绑定的去重设备数量；新设备激活率 = 同期新设备激活数 ÷ 同期确认收货新设备数。" },
+    { id: "total-machines", label: "总机器数量", value: "48,620 台", raw: 48620, change: "+3.8%", changeTone: "positive", note: "历史累计 · 总销售设备", definition: "总销售设备数量，按历史累计有效销售设备数量统计。" },
+    { id: "sales-volume", label: "销售量", value: "4,328 台", raw: 4328, change: "+11.2%", changeTone: "positive", note: "2026年8月 · 销售设备", definition: "筛选时间内的销售设备数量，按有效销售设备数量统计。" },
+    { id: "activation", label: "新设备激活率", value: "3,584 台", secondaryLabel: "激活率", secondaryValue: "82.8%", raw: 3584, change: "-3.4pp", changeTone: "negative", note: "2026年8月 · 首次绑定", definition: "筛选时间内新销售设备中首次完成设备绑定 / App 绑定的去重设备数量；新设备激活率 = 同期新设备激活数 ÷ 同期销售设备数。" },
     { id: "device-d7-active", label: "新设备七日活跃率", value: "2,022 台", secondaryLabel: "活跃率", secondaryValue: "56.4%", raw: 2022, change: "+1.6pp", changeTone: "positive", note: "2026年8月 · 激活后7日内有效运动", definition: "筛选时间内新激活设备在激活后 7 日内仍有有效运动记录的设备数量；新设备七日活跃率 = 激活后 7 日内有有效运动记录的新设备数 ÷ 同期新激活设备数。" },
     { id: "active-devices", label: "运动设备", value: "7,918 台", raw: 7918, change: "+5.4%", changeTone: "positive", note: "2026年8月 · 有效运动", definition: "筛选时间内至少产生 1 次有效运动记录的去重设备数量。" },
   ],
@@ -258,7 +258,7 @@ const executive: ExecutiveData = {
 const trend = (values: number[]): TimeSeriesPoint[] => values.map((value, i) => ({ date: `${8 + i * 3}日`, value, secondary: Math.round(value * (0.91 + (i % 3) * 0.02)) }));
 const metricDefinitions: Record<string, string> = {
   "销售额": "筛选周期内支付成功且未全额退款订单的实付金额之和。",
-  "销量": "筛选周期内已确认收货且未全额退款订单中的设备数量。",
+  "销量": "筛选周期内的有效销售设备数量。",
   "客单价": "销售额 ÷ 支付成功订单数。",
   "退货率": "完成退货退款的订单数 ÷ 支付成功订单数。",
   "已激活设备": "已成功绑定 MOVEVI App 的去重设备数，设备激活与 App 绑定为同一状态。",
@@ -336,7 +336,7 @@ function shiftIsoDate(value: string, days: number) {
 const modules: Record<string, ModuleData> = {
   sales: {
     title: "销售中心", description: "从渠道曝光到退款，判断增长的规模、质量与可持续性。",
-    metrics: [metric("revenue", "销售额", "¥1,286,400", 1286400, "+8.6%", "本月累计成交金额"), metric("orders", "销量", "4,328 台", 4328, "+11.2%", "确认收货设备"), metric("aov", "客单价", "¥297", 297, "-2.3%", "受抖音组合装影响", "negative"), metric("refund", "退货率", "5.1%", 5.1, "+0.8pp", "高于 4.5% 预警线", "negative")],
+    metrics: [metric("revenue", "销售额", "¥1,286,400", 1286400, "+8.6%", "本月累计成交金额"), metric("orders", "销量", "4,328 台", 4328, "+11.2%", "销售设备"), metric("aov", "客单价", "¥297", 297, "-2.3%", "受抖音组合装影响", "negative"), metric("refund", "退货率", "5.1%", 5.1, "+0.8pp", "高于 4.5% 预警线", "negative")],
     trend: trend([27, 31, 29, 38, 36, 42, 47, 44, 51]), chartTitle: "销售额与有效订单趋势", chartUnit: "万元",
     distribution: [{ name: "TS2", value: 24 }, { name: "TS2PRO", value: 28 }, { name: "TS3", value: 20 }, { name: "TS3PRO", value: 28 }], distributionTitle: "产品销售结构",
     columns: ["渠道", "曝光", "咨询率", "支付转化", "退货率", "销售额"], rows: [["抖音", "46.8万", "14.2%", "3.6%", "7.4%", "¥496,300"], ["天猫", "25.4万", "12.8%", "5.3%", "3.1%", "¥364,800"], ["京东", "18.7万", "10.9%", "5.7%", "3.8%", "¥283,600"], ["拼多多", "12.9万", "11.6%", "4.2%", "6.3%", "¥141,700"]], sectionTitle: "渠道质量明细",
