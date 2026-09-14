@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   ArrowDownRight, ArrowRight, ArrowUpRight, CalendarCheck, CaretDown, CheckCircle, Coins,
-  Clock, Database, Gift, Info, MagnifyingGlass, Medal, Path, Question, SealCheck, TrendUp, WarningCircle, X,
+  Clock, Database, Gift, Info, MagnifyingGlass, Medal, Question, SealCheck, TrendUp, X,
 } from "@phosphor-icons/react";
 import {
   Area, Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -20,9 +20,70 @@ function MetricCard({ metric, onClick }: { metric: Metric; onClick: () => void }
 }
 
 function ReportTable({ title, subtitle, columns, rows }: { title: string; subtitle: string; columns: string[]; rows: (string | number)[][] }) {
+  const pageSize = 10;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const visibleRows = rows.slice(start, start + pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [rows, title]);
+
   return <section className="activity-panel activity-table-panel">
     <header><div><h3>{title}</h3><p>{subtitle}</p></div><Database /></header>
-    <div className="table-scroll"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>
+    <div className="table-scroll"><table aria-label={title}><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{visibleRows.map((row, index) => <tr key={`${start + index}-${row.join("-")}`}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>
+    {rows.length > pageSize && <footer className="table-pagination"><span>共 {rows.length.toLocaleString("zh-CN")} 条 · 第 {currentPage} / {totalPages} 页 · 当前 {start + 1}–{Math.min(start + pageSize, rows.length)} 条</span><div><button type="button" onClick={() => setPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}><ArrowRight />上一页</button><button type="button" onClick={() => setPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>下一页<ArrowRight /></button></div></footer>}
+  </section>;
+}
+
+function CheckinDailyTable({ data }: { data: ActivityCenterData["checkin"] }) {
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const dailyMap = useMemo(() => new Map(data.dailyRows.map((row) => [String(row[0]), row])), [data.dailyRows]);
+  const rows = useMemo(() => {
+    const dates = Array.from(new Set([...data.newUserTrend.map((item) => item.date), ...data.dailyRows.map((row) => String(row[0]))])).sort((a, b) => a.localeCompare(b));
+    return dates.map((date) => {
+      const newUser = data.newUserTrend.find((item) => item.date === date);
+      const daily = dailyMap.get(date);
+      const newUserParticipants = newUser?.participants ?? 0;
+      const firstDayCompleted = newUser?.completed ?? 0;
+      return [
+        date,
+        newUser ? newUser.users.toLocaleString("zh-CN") : "—",
+        newUser ? newUserParticipants.toLocaleString("zh-CN") : "—",
+        newUser ? firstDayCompleted.toLocaleString("zh-CN") : "—",
+        newUser ? `${(newUserParticipants / newUser.users * 100).toFixed(1)}%` : "—",
+        newUser ? `${(firstDayCompleted / newUserParticipants * 100).toFixed(1)}%` : "—",
+        daily?.[1] ?? "—",
+        daily?.[2] ?? "—",
+        daily?.[3] ?? "—",
+        daily?.[4] ?? "—",
+        daily?.[5] ?? "—",
+      ];
+    });
+  }, [dailyMap, data.dailyRows, data.newUserTrend]);
+  const filteredRows = useMemo(() => {
+    const keyword = query.trim();
+    if (!keyword) return rows;
+    return rows.filter((row) => String(row[0]).includes(keyword));
+  }, [query, rows]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const visibleRows = filteredRows.slice(start, start + pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, rows]);
+
+  return <section className="activity-panel activity-table-panel checkin-daily-table">
+    <header><div><h3>每日活动数据</h3><p>合并每日打卡趋势与新增用户计划转化，支持按日期搜索</p></div><Database /></header>
+    <div className="device-record-toolbar"><label className="table-search"><MagnifyingGlass /><span className="sr-only">按日期搜索每日活动数据</span><input type="search" aria-label="按日期搜索每日活动数据" placeholder="输入日期，如 08-25" value={query} onChange={(event) => setQuery(event.target.value)} /></label><span>每页显示 10 条，超过后可上下翻页</span></div>
+    <div className="table-scroll"><table aria-label="每日活动数据"><thead><tr>{["日期", "新增用户", "新用户开启计划", "完成首日路线", "计划开启率", "首日完成率", "当日开启计划", "完成路线", "获得红包", "领取红包", "累计开启"].map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{visibleRows.length ? visibleRows.map((row) => <tr key={row[0]}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>) : <tr><td className="empty-table-cell" colSpan={11}>未找到匹配日期，请输入类似 08-25 的日期</td></tr>}</tbody></table></div>
+    <footer className="table-pagination"><span>共 {filteredRows.length.toLocaleString("zh-CN")} 条 · 第 {currentPage} / {totalPages} 页{filteredRows.length > 0 && ` · 当前 ${start + 1}–${Math.min(start + pageSize, filteredRows.length)} 条`}</span><div><button type="button" onClick={() => setPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}><ArrowRight />上一页</button><button type="button" onClick={() => setPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>下一页<ArrowRight /></button></div></footer>
   </section>;
 }
 
@@ -102,9 +163,8 @@ function LightStarBoard({ data, onMetric, onShowRules }: { data: LightStarReport
       <section className="activity-panel activity-chart-panel"><header><div><h3>开奖后 24 小时抽奖节奏</h3><p>当日 20:00 至次日 19:59，按小时汇总实际抽奖次数</p></div><Clock /></header><div className="activity-chart" role="img" aria-label="当日晚上八点至次日十九点抽奖次数分布"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={data.hourly} margin={{ top: 18, right: 18, left: -12, bottom: 0 }}><CartesianGrid vertical={false} stroke="#e8edf3" /><XAxis dataKey="time" tickLine={false} axisLine={false} interval={2} tick={{ fontSize: 10 }} /><YAxis tickLine={false} axisLine={false} allowDecimals={false} /><Tooltip labelFormatter={(label) => `${label}–下一小时`} formatter={(value) => [`${Number(value).toLocaleString("zh-CN")} 次`, "实际抽奖"]} /><Bar dataKey="draws" name="实际抽奖" fill="#ff6b57" radius={[5, 5, 0, 0]} maxBarSize={28} /></ComposedChart></ResponsiveContainer></div></section>
       <section className="activity-panel frequency-panel"><header><div><h3>用户抽奖频次</h3><p>单个用户抽奖次数不设上限，观察机会集中度</p></div><Coins /></header><div className="frequency-list">{data.frequency.map((item) => <article key={item.name}><div><span>{item.name}</span><strong>{item.users.toLocaleString("zh-CN")} 人</strong></div><progress max={data.flow[2].value} value={item.users} /><small>{(item.users / data.flow[2].value * 100).toFixed(1)}%</small></article>)}</div></section>
     </div>
-    <div className="activity-analysis-grid star-bottom-grid">
+    <div className="activity-analysis-grid">
       <ReportTable title="路线与勋章产出" subtitle="检查每条路线的勋章产出是否保持在 2–3 枚，并观察兑换与结转" columns={["排名", "路线", "完成次数", "获得勋章", "单次平均", "兑换勋章", "结转勋章"]} rows={data.medalRows} />
-      <section className="activity-panel cross-period-panel"><header><div><h3>勋章结转与活动履约</h3><p>奖池配置、抽奖用户与下期可用勋章</p></div><Path /></header><div>{data.crossPeriod.map((item) => <article key={item.label}><span>{item.label}</span><strong>{item.value}</strong><small>{item.note}</small></article>)}</div><p className="activity-callout warning"><WarningCircle />当前范围有 {data.carryoverBadges.toLocaleString("zh-CN")} 枚未兑换勋章可自动结转；另有 {data.unusedChances.toLocaleString("zh-CN")} 次已生成但未使用的抽奖机会，需单独监控机会跨期配置。</p></section>
     </div>
     <LotteryUserTable rows={data.userRows} />
   </div>;
@@ -123,10 +183,7 @@ function CheckinBoard({ data, onMetric }: { data: ActivityCenterData["checkin"];
       <ReportTable title="重点红包日完成与领取" subtitle="第1、7、15、21、30天金额较高；30天累计红包8.8元" columns={["任务日", "单日红包", "到达用户", "完成路线", "领取红包", "领取率", "领取金额"]} rows={data.rewardRows} />
       <ReportTable title="新手红包任务" subtitle="与30天打卡红包分开统计，避免奖励金额重复计算" columns={["任务", "单人红包", "可参与用户", "完成人数", "领取人数", "领取率", "领取金额"]} rows={data.newbieRows} />
     </div>
-    <div className="activity-analysis-grid checkin-detail-grid">
-      <ReportTable title="每日打卡趋势明细" subtitle="每天完成对应推荐路线后获得1个固定金额红包" columns={["日期", "开启计划", "完成路线", "获得红包", "领取红包", "累计开启"]} rows={data.dailyRows} />
-      <ReportTable title="新增用户计划转化" subtitle="按新用户注册日观察开启计划与首日路线完成" columns={["日期", "新增用户", "开启计划", "完成首日路线", "计划开启率", "首日完成率"]} rows={data.newUserTrend.map((item) => [item.date, item.users.toLocaleString("zh-CN"), item.participants.toLocaleString("zh-CN"), item.completed.toLocaleString("zh-CN"), `${(item.participants / item.users * 100).toFixed(1)}%`, `${(item.completed / item.participants * 100).toFixed(1)}%`])} />
-    </div>
+    <CheckinDailyTable data={data} />
     <ReportTable title="推荐路线完成表现" subtitle="每日一条推荐路线，可在当天开始前更换路线" columns={["推荐路线", "到达任务", "完成路线", "完成率", "领取红包", "红包领取率", "建议时长", "路线里程"]} rows={data.routeRows} />
     <div className="activity-analysis-grid checkin-bottom-grid">
       <section className="activity-panel quality-panel"><header><div><h3>活动规则与数据口径</h3><p>基于 MOVEVI App“打卡领红包”当前规则</p></div><CheckCircle weight="fill" /></header><div className="quality-result"><CheckCircle weight="fill" /><div><strong>30天累计可领 ¥8.80</strong><span>每天完成对应推荐路线，获得并领取当日固定金额红包</span></div></div><ul><li>开启计划：用户点击“开启30天打卡”，每人仅记录一次</li><li>完成路线：在对应任务日完成当天推荐路线</li><li>重点红包日：第1、7、15、21、30天，红包金额高于普通任务日</li><li>新手红包：首次连接激活¥1.80、首次完成路线¥2.80，独立统计</li><li>领取红包：用户点击领取后进入“我的钱包”</li></ul></section>

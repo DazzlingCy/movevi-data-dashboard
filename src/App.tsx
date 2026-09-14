@@ -40,7 +40,7 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "/content": { title: "内容中心", subtitle: "城市、路线与真实内容价值" },
   "/explore": { title: "探索中心", subtitle: "路线解锁与世界跑者成长" },
   "/activities": { title: "活动中心", subtitle: "活动经营数据" },
-  "/activities/lottery": { title: "勋章抽奖", subtitle: "按期次查看勋章、抽奖节奏、奖池履约与用户明细" },
+  "/activities/lottery": { title: "勋章抽奖", subtitle: "按期次查看勋章、抽奖节奏与用户明细" },
   "/activities/checkin": { title: "30天打卡", subtitle: "每日推荐路线、红包领取与30天完成报表" },
   "/commercial": { title: "商业中心", subtitle: "订阅增长与长期用户价值" },
   "/insights": { title: "AI 洞察", subtitle: "将数据信号变成经营动作" },
@@ -59,10 +59,10 @@ const dashboardQuarterOptions = ["2026-Q3", "2026-Q2", "2026-Q1", "2025-Q4"];
 const dashboardYearOptions = ["2026", "2025", "2024"];
 
 function resolveDashboardPeriod(params: URLSearchParams) {
-  const kind = (params.get("dashboardPeriod") ?? "month") as DashboardPeriodKind | "lastMonth";
-  const safeKind: DashboardPeriodKind = dashboardPeriodKinds.some((item) => item.value === kind) ? kind as DashboardPeriodKind : "month";
+  const kind = (params.get("dashboardPeriod") ?? "total") as DashboardPeriodKind | "lastMonth";
+  const safeKind: DashboardPeriodKind = dashboardPeriodKinds.some((item) => item.value === kind) ? kind as DashboardPeriodKind : "total";
   const value = params.get("dashboardPeriodValue") ?? (safeKind === "month" ? "2026-08" : safeKind === "quarter" ? "2026-Q3" : safeKind === "year" ? "2026" : "");
-  if (safeKind === "total") return { kind: safeKind, value: "", from: "2020-01-01", to: "2026-09-02", label: "全部累计" };
+  if (safeKind === "total") return { kind: safeKind, value: "", from: "2020-01-01", to: "2026-09-02", label: "总" };
   if (safeKind === "month") {
     const [year, month] = (dashboardMonthOptions.includes(value) ? value : "2026-08").split("-");
     const lastDay = year === "2026" && month === "09" ? "02" : new Date(Number(year), Number(month), 0).getDate().toString().padStart(2, "0");
@@ -103,33 +103,31 @@ function Shell() {
     const hadOutOfScopeActivityFilters = isActivityPage && activityFilterKeys.some((key) => normalized.has(key));
     const hadOutOfScopePeriod = !isLotteryPage && normalized.has("period");
     const hadRegionFilter = normalized.has("region");
-    const hadOutOfScopeDashboardPeriod = !isDashboardPage && (normalized.has("dashboardPeriod") || normalized.has("dashboardPeriodValue"));
-    const hadDashboardDateRange = isDashboardPage && (normalized.has("from") || normalized.has("to"));
+    const hadOutOfScopeDashboardPeriod = isActivityPage && (normalized.has("dashboardPeriod") || normalized.has("dashboardPeriodValue"));
+    const hadOutOfScopeDateRange = normalized.has("from") || normalized.has("to");
     normalized.delete("stage");
     normalized.delete("region");
     if (!isSalesPage) normalized.delete("channel");
     if (isActivityPage) activityFilterKeys.forEach((key) => normalized.delete(key));
     if (!isLotteryPage) normalized.delete("period");
-    if (!isDashboardPage) {
+    if (isActivityPage) {
       normalized.delete("dashboardPeriod");
       normalized.delete("dashboardPeriodValue");
     }
-    if (isDashboardPage) {
-      normalized.delete("from");
-      normalized.delete("to");
-    }
+    normalized.delete("from");
+    normalized.delete("to");
     searchParamsRef.current = normalized;
-    if (hadStageFilter || hadOutOfScopeChannel || hadOutOfScopeActivityFilters || hadOutOfScopePeriod || hadRegionFilter || hadOutOfScopeDashboardPeriod || hadDashboardDateRange) setSearchParams(normalized, { replace: true });
+    if (hadStageFilter || hadOutOfScopeChannel || hadOutOfScopeActivityFilters || hadOutOfScopePeriod || hadRegionFilter || hadOutOfScopeDashboardPeriod || hadOutOfScopeDateRange) setSearchParams(normalized, { replace: true });
   }, [isActivityPage, isDashboardPage, isLotteryPage, isSalesPage, searchParams, setSearchParams]);
   const dashboardPeriod = useMemo(() => resolveDashboardPeriod(searchParams), [searchParams]);
   const filters = useMemo<ReportFilters>(() => ({
-    from: isDashboardPage ? dashboardPeriod.from : searchParams.get("from") ?? defaultFilters.from,
-    to: isDashboardPage ? dashboardPeriod.to : searchParams.get("to") ?? defaultFilters.to,
+    from: isActivityPage ? defaultFilters.from : dashboardPeriod.from,
+    to: isActivityPage ? defaultFilters.to : dashboardPeriod.to,
     channel: isSalesPage ? searchParams.get("channel") ?? defaultFilters.channel : defaultFilters.channel,
     product: searchParams.get("product") ?? defaultFilters.product,
     region: defaultFilters.region,
-    periodLabel: isDashboardPage ? dashboardPeriod.label : undefined,
-  }), [dashboardPeriod.from, dashboardPeriod.label, dashboardPeriod.to, isDashboardPage, isSalesPage, searchParams]);
+    periodLabel: isActivityPage ? undefined : dashboardPeriod.label,
+  }), [dashboardPeriod.from, dashboardPeriod.label, dashboardPeriod.to, isActivityPage, isSalesPage, searchParams]);
 
   const changeFilter = (key: keyof ReportFilters, value: string) => {
     const next = new URLSearchParams(searchParamsRef.current);
@@ -148,7 +146,7 @@ function Shell() {
 
   const changeDashboardPeriod = (kind: DashboardPeriodKind, value = "") => {
     const next = new URLSearchParams(searchParamsRef.current);
-    if (kind === "month" && !value) next.delete("dashboardPeriod"); else next.set("dashboardPeriod", kind);
+    if (kind === "total") next.delete("dashboardPeriod"); else next.set("dashboardPeriod", kind);
     if (value) next.set("dashboardPeriodValue", value); else next.delete("dashboardPeriodValue");
     next.delete("from");
     next.delete("to");
@@ -160,15 +158,9 @@ function Shell() {
     const next = new URLSearchParams(searchParams);
     next.delete("region");
     if (path !== "/sales") next.delete("channel");
-    if (path !== "/dashboard") {
-      next.delete("dashboardPeriod");
-      next.delete("dashboardPeriodValue");
-    }
-    if (path === "/dashboard") {
-      next.delete("from");
-      next.delete("to");
-    }
-    if (path.startsWith("/activities")) ["from", "to", "channel", "product", "region"].forEach((key) => next.delete(key));
+    next.delete("from");
+    next.delete("to");
+    if (path.startsWith("/activities")) ["from", "to", "channel", "product", "region", "dashboardPeriod", "dashboardPeriodValue"].forEach((key) => next.delete(key));
     if (path !== "/activities/lottery") next.delete("period");
     const query = next.toString();
     return query ? `${path}?${query}` : path;
@@ -193,7 +185,7 @@ function Shell() {
         <div className="top-actions"><span className="data-pill"><span className="live-dot" />演示数据 · 截止 09-02</span><GlobalSearch onNavigate={navigateKeepingFilters} /><button className="icon-button notification" aria-label="通知"><Bell /><i /></button></div>
       </header>
       <main className="main-content">
-        {isDashboardPage ? <DashboardPeriodBar period={dashboardPeriod} product={filters.product} onChange={changeDashboardPeriod} onProductChange={(value) => changeFilter("product", value)} /> : !isActivityPage && <FilterBar filters={filters} onChange={changeFilter} onDateChange={changeDateRange} showChannel={isSalesPage} />}
+        {!isActivityPage && <DashboardPeriodBar period={dashboardPeriod} product={filters.product} channel={filters.channel} onChange={changeDashboardPeriod} onProductChange={(value) => changeFilter("product", value)} onChannelChange={(value) => changeFilter("channel", value)} showChannel={isSalesPage} />}
         <Routes>
           <Route path="/dashboard" element={<Dashboard filters={filters} navigate={navigateKeepingFilters} />} />
           <Route path="/sales" element={<ModulePage moduleKey="sales" filters={filters} loader={dataProvider.getSalesCenter.bind(dataProvider)} />} />
@@ -214,6 +206,7 @@ function Shell() {
 }
 
 const maxReportDate = "2026-09-02";
+const launchDate = "2020-01-01";
 const datePresets = [
   { label: "数据截止日", from: "2026-09-02", to: "2026-09-02" },
   { label: "近 7 天", from: "2026-08-27", to: "2026-09-02" },
@@ -223,9 +216,10 @@ const datePresets = [
   { label: "本月", from: "2026-09-01", to: "2026-09-02" },
   { label: "上月", from: "2026-08-01", to: "2026-08-31" },
   { label: "今年至今", from: "2026-01-01", to: "2026-09-02" },
+  { label: "总", from: launchDate, to: maxReportDate },
 ];
 
-function DashboardPeriodBar({ period, product, onChange, onProductChange }: { period: ReturnType<typeof resolveDashboardPeriod>; product: string; onChange: (kind: DashboardPeriodKind, value?: string) => void; onProductChange: (value: string) => void }) {
+function DashboardPeriodBar({ period, product, channel = defaultFilters.channel, onChange, onProductChange, onChannelChange, showChannel = false }: { period: ReturnType<typeof resolveDashboardPeriod>; product: string; channel?: string; onChange: (kind: DashboardPeriodKind, value?: string) => void; onProductChange: (value: string) => void; onChannelChange?: (value: string) => void; showChannel?: boolean }) {
   const valueOptions = period.kind === "month" ? dashboardMonthOptions : period.kind === "quarter" ? dashboardQuarterOptions : period.kind === "year" ? dashboardYearOptions : [];
   const formatOption = (value: string) => {
     if (period.kind === "month") {
@@ -242,8 +236,9 @@ function DashboardPeriodBar({ period, product, onChange, onProductChange }: { pe
     <div className="period-label"><CalendarBlank /><div><b>数据周期</b><span>{period.label} · {formatDisplayDate(period.from)} 至 {formatDisplayDate(period.to)}</span></div></div>
     <label className="select-wrap period-kind"><span>周期类型</span><select aria-label="周期类型" value={period.kind} onChange={(event) => onChange(event.target.value as DashboardPeriodKind)}>{dashboardPeriodKinds.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><CaretDown size={12} /></label>
     {valueOptions.length > 0 && <label className="select-wrap period-value"><span>周期值</span><select aria-label="周期值" value={period.value} onChange={(event) => onChange(period.kind, event.target.value)}>{valueOptions.map((value) => <option key={value} value={value}>{formatOption(value)}</option>)}</select><CaretDown size={12} /></label>}
+    {showChannel && onChannelChange && <FilterSelect label="渠道" value={channel} options={["全部渠道", "抖音", "天猫", "京东", "拼多多"]} onChange={onChannelChange} />}
     <FilterSelect label="型号" value={product} options={["全部型号", "TS2", "TS2PRO", "TS3", "TS3PRO"]} onChange={onProductChange} />
-    <button className="reset-button" onClick={() => { onChange("month"); onProductChange(defaultFilters.product); }}>重置</button>
+    <button className="reset-button" onClick={() => { onChange("total"); if (showChannel && onChannelChange) onChannelChange(defaultFilters.channel); onProductChange(defaultFilters.product); }}>重置</button>
   </section>;
 }
 

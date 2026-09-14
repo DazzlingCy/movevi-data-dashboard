@@ -42,7 +42,10 @@ describe("MockDataProvider", () => {
   it("provides a complete searchable device ledger", async () => {
     const result = await dataProvider.getDeviceCenter(defaultFilters);
     expect(result.data.description).toBe("从销售到激活、使用的完整状态。");
-    expect(result.data.metrics.map((metric) => metric.label)).toEqual(["销售设备", "已激活设备", "激活率", "30日使用率", "沉默设备"]);
+    expect(result.data.metrics.map((metric) => metric.label)).toEqual(["销售设备", "已激活设备", "激活率", "使用率", "沉默设备"]);
+    expect(result.data.metrics.find((metric) => metric.label === "已激活设备")?.note).toBe("总 · 激活");
+    expect(result.data.metrics.find((metric) => metric.label === "使用率")?.note).toBe("总 · 有使用");
+    expect(result.data.metrics.find((metric) => metric.label === "沉默设备")?.note).toBe("总 · 无连接/运动");
     expect(result.data.chartTitle).toBe("销售和激活");
     expect(result.data.distributionDefinitions?.map((item) => item.name)).toEqual(["活跃", "低频", "沉默", "故障"]);
     expect(result.data.sectionTitle).toBe("一机一档完整字段表");
@@ -59,8 +62,10 @@ describe("MockDataProvider", () => {
     const activity = await dataProvider.getActivityCenter(defaultFilters);
     expect(activity.data.lightStarPeriods).toHaveLength(4);
     expect(activity.data.lightStarPeriods[0]).toMatchObject({ id: "all", isAggregate: true });
+    expect(activity.data.lightStarPeriods[0].medalRows).toHaveLength(16);
     expect(activity.data.lightStarPeriods.every((period) => period.metrics.length === 12)).toBe(true);
     expect(activity.data.checkin.name).toBe("30天打卡领红包");
+    expect(activity.data.checkin.period).toBe("统计区间 功能上线后至今 · 单用户计划周期 30 天");
     expect(activity.data.checkin.metrics).toHaveLength(12);
     expect([...activity.data.lightStarPeriods.flatMap((period) => period.metrics), ...activity.data.checkin.metrics].every((item) => item.definition.length > 12)).toBe(true);
     expect(activity.data.lightStarPeriods[1].metrics.map((item) => item.label)).toEqual(expect.arrayContaining(["完成路线数", "获得勋章", "平均每路线勋章", "兑换勋章", "实际抽奖", "奖励发放", "奖励金额", "期末结转勋章"]));

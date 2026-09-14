@@ -163,12 +163,12 @@ export interface DataProvider {
 }
 
 export const defaultFilters: ReportFilters = {
-  from: "2026-08-01",
+  from: "2020-01-01",
   to: "2026-09-02",
   channel: "全部渠道",
   product: "全部型号",
   region: "全国",
-  periodLabel: "2026年8月",
+  periodLabel: "总",
 };
 
 const baseFunnel: FunnelStage[] = [
@@ -265,8 +265,8 @@ const metricDefinitions: Record<string, string> = {
   "销售设备": "筛选周期内的有效销售设备数量。",
   "已激活设备": "已成功绑定 MOVEVI App 的去重设备数，设备激活与 App 绑定为同一状态。",
   "激活率": "筛选周期内已激活设备数 ÷ 同期销售设备数。",
-  "30日使用率": "近 30 日至少产生 1 次有效运动记录的设备数 ÷ 累计激活设备数。",
-  "沉默设备": "累计激活设备中，近 30 日未产生连接记录且未产生有效运动记录的去重设备数量。",
+  "使用率": "筛选时间内至少产生 1 次有效运动记录的设备数 ÷ 同期激活设备数。",
+  "沉默设备": "筛选时间内未产生连接记录且未产生有效运动记录的去重设备数量。",
   "DAU": "自然日内至少产生 1 次有效运动或路线行为的去重 MOVEVI App 用户数。",
   "WAU": "连续 7 日内至少产生 1 次有效运动或路线行为的去重 MOVEVI App 用户数。",
   "MAU": "连续 30 日内至少产生 1 次有效运动或路线行为的去重 MOVEVI App 用户数。",
@@ -346,13 +346,13 @@ const modules: Record<string, ModuleData> = {
   },
   devices: {
     title: "设备中心", description: "从销售到激活、使用的完整状态。",
-    metrics: [metric("sold", "销售设备", "36,887 台", 36887, "+8.6%", "筛选时间内销售"), metric("activated", "已激活设备", "30,563 台", 30563, "+6.2%", "累计激活"), metric("rate", "激活率", "82.8%", 82.8, "-3.4pp", "销售设备口径", "negative"), metric("usage", "30日使用率", "63.6%", 63.6, "+2.1pp", "近 30 日有使用"), metric("silent", "沉默设备", "3,973 台", 3973, "-0.4pp", "近 30 日无连接/运动")],
+    metrics: [metric("sold", "销售设备", "36,887 台", 36887, "+8.6%", "筛选时间内销售"), metric("activated", "已激活设备", "30,563 台", 30563, "+6.2%", "筛选时间内激活"), metric("rate", "激活率", "82.8%", 82.8, "-3.4pp", "销售设备口径", "negative"), metric("usage", "使用率", "63.6%", 63.6, "+2.1pp", "筛选时间内有使用"), metric("silent", "沉默设备", "3,973 台", 3973, "-0.4pp", "筛选时间内无连接/运动")],
     trend: trend([71, 74, 76, 80, 79, 83, 82, 86, 88]), chartTitle: "销售和激活", chartUnit: "%",
     distribution: [{ name: "活跃", value: 64 }, { name: "低频", value: 21 }, { name: "沉默", value: 13 }, { name: "故障", value: 2 }], distributionTitle: "设备状态分布",
     distributionDefinitions: [
-      { name: "活跃", definition: "近 30 日有连接且完成过一条路线以上的设备。" },
-      { name: "低频", definition: "近 30 日有连接或运动记录，但未完成过路线的设备。" },
-      { name: "沉默", definition: "近 30 日无连接且无有效运动记录的设备。" },
+      { name: "活跃", definition: "筛选时间内有连接且完成过一条路线以上的设备。" },
+      { name: "低频", definition: "筛选时间内有连接或运动记录，但未完成过路线的设备。" },
+      { name: "沉默", definition: "筛选时间内无连接且无有效运动记录的设备。" },
       { name: "故障", definition: "存在未关闭故障记录或需售后处理的设备。" },
     ],
     columns: ["设备唯一 ID", "型号", "出厂时间", "销售时间", "绑定用户", "激活时间", "首次连接", "最近连接", "30日连接", "累计运动", "累计时长", "累计里程", "故障记录", "固件版本", "APP版本", "状态"],
@@ -499,7 +499,7 @@ const activityCenter: ActivityCenterData = {
       hourly: hourlyCycle(546, 42, 12),
       pool: { rewardLimit: 600, rewardIssued: 600, budget: 300, amountIssued: 300, soldOutAt: "3 / 3 期已抽完" },
       frequency: [{ name: "1次", users: 212 }, { name: "2次", users: 72 }, { name: "3次", users: 30 }, { name: "4次以上", users: 12 }],
-      medalRows: [[1, "长安街绝代风华·上篇", 214, 535, "2.50", 286, 249], [2, "巴黎浪漫漫步", 196, 490, "2.50", 248, 242], [3, "东京夜景轻跑", 184, 460, "2.50", 226, 234], [4, "杭州西湖十景", 172, 430, "2.50", 198, 232], [5, "艺术园区彩霓虹", 148, 370, "2.50", 176, 194], [6, "牛街护国食味飘香", 135, 337, "2.50", 162, 175]],
+      medalRows: [[1, "长安街绝代风华·上篇", 214, 535, "2.50", 286, 249], [2, "巴黎浪漫漫步", 196, 490, "2.50", 248, 242], [3, "东京夜景轻跑", 184, 460, "2.50", 226, 234], [4, "杭州西湖十景", 172, 430, "2.50", 198, 232], [5, "艺术园区彩霓虹", 148, 370, "2.50", 176, 194], [6, "牛街护国食味飘香", 135, 337, "2.50", 162, 175], [7, "上海外滩夜航", 128, 320, "2.50", 154, 166], [8, "成都锦城绿道", 116, 290, "2.50", 138, 152], [9, "塞纳河左岸漫步", 104, 260, "2.50", 126, 134], [10, "新加坡滨海湾", 96, 240, "2.50", 112, 128], [11, "伦敦泰晤士河畔", 88, 220, "2.50", 104, 116], [12, "纽约中央公园", 82, 205, "2.50", 96, 109], [13, "悉尼海港晨跑", 76, 190, "2.50", 88, 102], [14, "京都鸭川慢跑", 70, 175, "2.50", 82, 93], [15, "洛杉矶海岸线", 64, 160, "2.50", 74, 86], [16, "罗马古城巡礼", 58, 145, "2.50", 66, 79]],
       userRows: buildLotteryUserRows("all", [212, 72, 30, 12], 600, 1644, "09-02 20:16"),
       crossPeriod: [{ label: "纳入活动期", value: "3 期", note: "第207–209期" }, { label: "重复参与用户", value: "29 人", note: "跨期获得勋章" }, { label: "单期奖励配置", value: "200 个", note: "抽完即止" }, { label: "单期奖励预算", value: "¥100", note: "三期合计 ¥300" }, { label: "抽奖用户", value: "326 人", note: "跨期用户去重" }, { label: "下期可用勋章", value: "2,110 枚", note: "未兑换勋章自动结转" }],
     },
@@ -545,7 +545,7 @@ const activityCenter: ActivityCenterData = {
   ],
   checkin: {
     name: "30天打卡领红包",
-    period: "统计区间 2026-08-01 至 2026-09-02 · 单用户计划周期 30 天",
+    period: "统计区间 功能上线后至今 · 单用户计划周期 30 天",
     asOf: "2026-09-02 23:59",
     metrics: [
       metric("checkin-connected", "连接激活新用户", "8,642 人", 8642, "+7.4%", "首次连接并激活 MOVEVI 跑步机的新用户"),
@@ -614,8 +614,38 @@ function scaleFor(filters: ReportFilters) {
   const from = new Date(`${filters.from}T00:00:00`);
   const to = new Date(`${filters.to}T00:00:00`);
   const days = Number.isFinite(from.getTime()) && Number.isFinite(to.getTime()) ? Math.max(0, Math.round((to.getTime() - from.getTime()) / 86400000) + 1) : 33;
-  const dateScale = Math.min(1.25, days / 33);
+  const dateScale = filters.from === defaultFilters.from && filters.to === defaultFilters.to ? 1 : Math.min(1.25, days / 33);
   return (channelScale[filters.channel] ?? 1) * (productScale[filters.product] ?? 1) * (regionScale[filters.region] ?? 1) * dateScale;
+}
+
+function formatRangeDate(value: string) {
+  return value.replaceAll("-", "/");
+}
+
+function concreteRangeLabel(filters: ReportFilters) {
+  return `${formatRangeDate(filters.from)}–${formatRangeDate(filters.to)}`;
+}
+
+function replaceRangeCopy(text: string, filters: ReportFilters) {
+  const range = concreteRangeLabel(filters);
+  return text
+    .replaceAll("当前筛选周期内", `${range} 内`)
+    .replaceAll("筛选时间内", `${range} 内`)
+    .replaceAll("筛选区间内", `${range} 内`)
+    .replaceAll("筛选周期内", `${range} 内`);
+}
+
+function replaceRangeNote(text: string, filters: ReportFilters) {
+  const label = filters.periodLabel ?? concreteRangeLabel(filters);
+  return text
+    .replaceAll("当前筛选周期内", `${label} · `)
+    .replaceAll("筛选时间内", `${label} · `)
+    .replaceAll("筛选区间内", `${label} · `)
+    .replaceAll("筛选周期内", `${label} · `);
+}
+
+function concreteRangeMetric(item: Metric, filters: ReportFilters): Metric {
+  return { ...item, note: replaceRangeNote(item.note, filters), definition: replaceRangeCopy(item.definition, filters) };
 }
 
 function filteredExecutive(filters: ReportFilters): ExecutiveData {
@@ -690,7 +720,11 @@ function filteredModule(key: keyof typeof modules, filters: ReportFilters): Modu
       : source.rows;
   return {
     ...source,
-    metrics: source.metrics.map((item) => item.raw > 100 ? { ...item, raw: Math.round(item.raw * scale), value: formatScaledValue(item.value, item.raw * scale) } : item),
+    metrics: source.metrics.map((item) => {
+      const ranged = concreteRangeMetric(item, filters);
+      return ranged.raw > 100 ? { ...ranged, raw: Math.round(ranged.raw * scale), value: formatScaledValue(ranged.value, ranged.raw * scale) } : ranged;
+    }),
+    distributionDefinitions: source.distributionDefinitions?.map((item) => ({ ...item, definition: replaceRangeCopy(item.definition, filters) })),
     trend: source.trend.map((item) => ({ ...item, value: Number((item.value * scaleTrend).toFixed(1)), secondary: item.secondary == null ? undefined : Number((item.secondary * scaleTrend).toFixed(1)) })),
     rows,
   };

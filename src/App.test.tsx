@@ -38,7 +38,7 @@ describe("MOVEVI dashboard", () => {
     expect(screen.getByText("新设备激活率")).toBeInTheDocument();
     expect(screen.getByText("新设备七日活跃率")).toBeInTheDocument();
     expect(screen.getByText("运动设备")).toBeInTheDocument();
-    expect(screen.getByText("2026年8月 · 2026/08/01 至 2026/08/31")).toBeInTheDocument();
+    expect(screen.getByText("总 · 2020/01/01 至 2026/09/02")).toBeInTheDocument();
     expect(screen.queryByLabelText("地区")).not.toBeInTheDocument();
     expect(screen.getByLabelText("型号")).toBeInTheDocument();
     expect(screen.getByText("激活率 82.8%")).toBeInTheDocument();
@@ -53,18 +53,18 @@ describe("MOVEVI dashboard", () => {
     expect(screen.getByText("看新增、活跃、留存是否形成运动习惯。")).toBeInTheDocument();
     expect(screen.getByText("看城市、路线和探索内容有没有被真实跑完。")).toBeInTheDocument();
     expect(screen.getByText("设备使用率")).toBeInTheDocument();
-    expect(screen.getByText("2026年8月 · 完成 App 绑定")).toBeInTheDocument();
-    expect(screen.getByText("2026年8月 · 有连接/运动")).toBeInTheDocument();
-    expect(screen.getByText("2026年8月 · 新注册")).toBeInTheDocument();
-    expect(screen.getByText("2026年8月 · 7日后活跃用户")).toBeInTheDocument();
+    expect(screen.getByText("总 · 完成 App 绑定")).toBeInTheDocument();
+    expect(screen.getByText("总 · 有连接/运动")).toBeInTheDocument();
+    expect(screen.getByText("总 · 新注册")).toBeInTheDocument();
+    expect(screen.getByText("总 · 7日后活跃用户")).toBeInTheDocument();
     expect(screen.getByText("完成城市数量")).toBeInTheDocument();
     expect(screen.getByText("完成城市用户数")).toBeInTheDocument();
     expect(screen.getByText("完成路线数量")).toBeInTheDocument();
     expect(screen.getByText("完成路线用户数")).toBeInTheDocument();
     expect(screen.getByText("路线完播率")).toBeInTheDocument();
     expect(screen.getByText("平均播放时长")).toBeInTheDocument();
-    expect(screen.getByText("2026年8月 · 完整跑完路线")).toBeInTheDocument();
-    expect(screen.getByText("2026年8月 · 单次路线播放")).toBeInTheDocument();
+    expect(screen.getByText("总 · 完整跑完路线")).toBeInTheDocument();
+    expect(screen.getByText("总 · 单次路线播放")).toBeInTheDocument();
     expect(screen.queryByText("近 30 日有连接")).not.toBeInTheDocument();
     expect(screen.queryByText("近 90 日有启动")).not.toBeInTheDocument();
     expect(screen.queryByText("上线路线 1,248 条")).not.toBeInTheDocument();
@@ -93,7 +93,8 @@ describe("MOVEVI dashboard", () => {
     render(<App />);
     expect(await screen.findByText("总机器数量")).toBeInTheDocument();
     await waitFor(() => expect(window.location.search).not.toContain("from="));
-    expect(screen.getByLabelText("周期类型")).toHaveValue("month");
+    expect(screen.getByLabelText("周期类型")).toHaveValue("total");
+    expect(screen.getByText("总 · 2020/01/01 至 2026/09/02")).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText("周期类型"), "quarter");
     expect(await screen.findByLabelText("周期值")).toHaveValue("2026-Q3");
     expect(await screen.findByText("2026年第3季度 · 2026/07/01 至 2026/09/02")).toBeInTheDocument();
@@ -279,12 +280,18 @@ describe("MOVEVI dashboard", () => {
     expect(screen.getByRole("link", { name: "勋章抽奖" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "30天打卡" })).toBeInTheDocument();
     expect(screen.queryByLabelText("渠道")).not.toBeInTheDocument();
+    expect(screen.getByText("路线与勋章产出")).toBeInTheDocument();
+    const defaultMedalTable = screen.getByRole("table", { name: "路线与勋章产出" });
+    const medalPanel = defaultMedalTable.closest("section") as HTMLElement;
+    expect(within(defaultMedalTable).getAllByRole("row")).toHaveLength(11);
+    expect(within(defaultMedalTable).queryByText("罗马古城巡礼")).not.toBeInTheDocument();
+    await userEvent.click(within(medalPanel).getByRole("button", { name: "下一页" }));
+    expect(within(defaultMedalTable).getByText("罗马古城巡礼")).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText("选择勋章抽奖期次"), "209");
     expect(await screen.findByText("勋章抽奖（209）")).toBeInTheDocument();
     expect(window.location.search).toContain("period=209");
     expect(screen.getAllByText("29 人").length).toBeGreaterThan(0);
     expect(screen.getByText("开奖后 24 小时抽奖节奏")).toBeInTheDocument();
-    expect(screen.getByText("路线与勋章产出")).toBeInTheDocument();
     const lotteryUserTable = screen.getByRole("table", { name: "用户抽奖列表" });
     expect(within(lotteryUserTable).getAllByRole("row")).toHaveLength(11);
     ["完成路线", "获得勋章", "兑换勋章", "抽奖次数", "中奖次数", "中奖金额"].forEach((column) => expect(within(lotteryUserTable).getByRole("button", { name: `${column}排序` })).toBeInTheDocument());
@@ -298,10 +305,21 @@ describe("MOVEVI dashboard", () => {
     expect(await screen.findByText("D1–D30 路线完成深度")).toBeInTheDocument();
     await waitFor(() => expect(window.location.search).not.toContain("period="));
     expect(screen.getByText("30天打卡领红包")).toBeInTheDocument();
+    expect(screen.getByText("统计区间 功能上线后至今 · 单用户计划周期 30 天")).toBeInTheDocument();
     expect(screen.getByText("重点红包日完成与领取")).toBeInTheDocument();
     expect(screen.getByText("新手红包任务")).toBeInTheDocument();
-    expect(screen.getByText("每日打卡趋势明细")).toBeInTheDocument();
-    expect(screen.getByText("新增用户计划转化")).toBeInTheDocument();
+    expect(screen.getByText("每日活动数据")).toBeInTheDocument();
+    expect(screen.queryByText("每日打卡趋势明细")).not.toBeInTheDocument();
+    expect(screen.queryByText("新增用户计划转化")).not.toBeInTheDocument();
+    const checkinDailyPanel = screen.getByText("每日活动数据").closest("section")!;
+    const checkinDailyTable = within(checkinDailyPanel).getByRole("table", { name: "每日活动数据" });
+    expect(within(checkinDailyTable).getAllByRole("row")).toHaveLength(11);
+    expect(within(checkinDailyTable).queryByText("09-02")).not.toBeInTheDocument();
+    await userEvent.click(within(checkinDailyPanel).getByRole("button", { name: "下一页" }));
+    expect(within(checkinDailyTable).getByText("09-02")).toBeInTheDocument();
+    await userEvent.type(within(checkinDailyPanel).getByRole("searchbox", { name: "按日期搜索每日活动数据" }), "08-31");
+    expect(within(checkinDailyTable).getAllByRole("row")).toHaveLength(2);
+    expect(within(checkinDailyTable).getByText("08-31")).toBeInTheDocument();
     expect(screen.getByText("推荐路线完成表现")).toBeInTheDocument();
     expect(screen.getByText("30天红包构成")).toBeInTheDocument();
   });
@@ -342,18 +360,26 @@ describe("MOVEVI dashboard", () => {
     expect(screen.queryByRole("button", { name: /进入.+中心/ })).not.toBeInTheDocument();
   });
 
-  it("opens an accessible date range popover and applies quick ranges", async () => {
-    window.history.pushState({}, "", "/users");
+  it("uses the same period selector as the dashboard and clears legacy date params", async () => {
+    window.history.pushState({}, "", "/users?from=2026-08-27&to=2026-09-02");
     render(<App />);
-    const trigger = await screen.findByRole("button", { name: /选择日期范围，当前 2026\/08\/01 至 2026\/09\/02/ });
-    await userEvent.click(trigger);
-    const dialog = screen.getByRole("dialog", { name: "日期范围筛选" });
-    ["数据截止日", "近 7 天", "近 30 天", "近 90 天", "本周", "本月", "上月", "今年至今"].forEach((label) => expect(within(dialog).getByRole("button", { name: new RegExp(`^${label}`) })).toBeInTheDocument());
-    await userEvent.click(within(dialog).getByRole("button", { name: /^近 7 天/ }));
-    await waitFor(() => expect(window.location.search).toContain("from=2026-08-27"));
+    expect(await screen.findByRole("region", { name: "首页时间筛选" })).toBeInTheDocument();
+    expect(screen.getByLabelText("周期类型")).toHaveValue("total");
+    expect(screen.getByText("总 · 2020/01/01 至 2026/09/02")).toBeInTheDocument();
+    await waitFor(() => expect(window.location.search).not.toContain("from="));
     expect(window.location.search).not.toContain("to=");
-    expect(screen.queryByRole("dialog", { name: "日期范围筛选" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /选择日期范围，当前 2026\/08\/27 至 2026\/09\/02/ })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("周期类型"), "month");
+    expect(await screen.findByLabelText("周期值")).toHaveValue("2026-08");
+    expect(screen.getByText("2026年8月 · 2026/08/01 至 2026/08/31")).toBeInTheDocument();
+    expect(window.location.search).toContain("dashboardPeriod=month");
+  });
+
+  it("shows module KPI notes with the selected period label", async () => {
+    window.history.pushState({}, "", "/devices?dashboardPeriod=quarter&dashboardPeriodValue=2026-Q1");
+    render(<App />);
+    expect(await screen.findByText("2026年第1季度 · 2026/01/01 至 2026/03/31")).toBeInTheDocument();
+    expect(screen.getByText("2026年第1季度 · 销售")).toBeInTheDocument();
+    expect(screen.getByText("2026年第1季度 · 激活")).toBeInTheDocument();
   });
 
   it("shows ten device records per page and supports paging and search", async () => {
@@ -395,9 +421,9 @@ describe("MOVEVI dashboard", () => {
     expect(screen.queryByText("本期与上期环比 · 单位：%")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "定义说明" }));
     expect(await screen.findByRole("dialog", { name: "设备状态定义" })).toBeInTheDocument();
-    expect(screen.getByText("近 30 日有连接且完成过一条路线以上的设备。")).toBeInTheDocument();
-    expect(screen.getByText("近 30 日有连接或运动记录，但未完成过路线的设备。")).toBeInTheDocument();
-    expect(screen.getByText("近 30 日无连接且无有效运动记录的设备。")).toBeInTheDocument();
+    expect(screen.getByText("2020/01/01–2026/09/02 内有连接且完成过一条路线以上的设备。")).toBeInTheDocument();
+    expect(screen.getByText("2020/01/01–2026/09/02 内有连接或运动记录，但未完成过路线的设备。")).toBeInTheDocument();
+    expect(screen.getByText("2020/01/01–2026/09/02 内无连接且无有效运动记录的设备。")).toBeInTheDocument();
 
     unmount();
     window.history.pushState({}, "", "/users");

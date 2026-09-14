@@ -22,7 +22,7 @@ export const globalSearchItems: SearchItem[] = [
   { id: "users", title: "用户中心", description: "活跃、留存、运动时段与生命周期", module: "用户中心", path: "/users", keywords: ["DAU", "MAU", "画像", "运动用户"], icon: UsersThree, quick: true },
   { id: "content", title: "内容中心", description: "区域、城市、路线、景点与路线完播率", module: "跑遍全球", path: "/content", keywords: ["内容", "城市列表", "有效路线", "大洲"], icon: GlobeHemisphereWest, quick: true },
   { id: "explore", title: "探索中心", description: "完成一座城市、路线解锁、探索深度与等级", module: "跑遍全球", path: "/explore", keywords: ["探索", "完成一座城市", "完成城市", "点亮地球", "世界跑者"], icon: Path, quick: true },
-  { id: "lottery", title: "勋章抽奖", description: "按期次查看勋章、抽奖节奏、奖池履约与用户明细", module: "活动中心", path: "/activities/lottery", keywords: ["奖池", "兑换", "抽奖机会", "期次", "勋章结转", "用户抽奖列表", "抽奖次数"], icon: Trophy, quick: true },
+  { id: "lottery", title: "勋章抽奖", description: "按期次查看勋章、抽奖节奏与用户明细", module: "活动中心", path: "/activities/lottery", keywords: ["奖池", "兑换", "抽奖机会", "期次", "勋章结转", "用户抽奖列表", "抽奖次数"], icon: Trophy, quick: true },
   { id: "checkin", title: "30天打卡", description: "每日推荐路线、红包领取与30天完成", module: "活动中心", path: "/activities/checkin", keywords: ["打卡活动", "红包", "连接激活", "推荐路线", "8.8元"], icon: Trophy, quick: true },
   { id: "commercial", title: "商业中心", description: "订阅转化、续费、ARPU 与 LTV", module: "商业中心", path: "/commercial", keywords: ["付费", "退订", "会员", "收入"], icon: CurrencyCircleDollar },
   { id: "insights", title: "AI 洞察", description: "经营机会、证据、建议与业务闭环", module: "AI 洞察", path: "/insights", keywords: ["AI", "机会清单", "智能分析", "建议"], icon: Brain },
