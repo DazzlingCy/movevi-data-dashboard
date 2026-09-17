@@ -205,7 +205,8 @@ describe("MOVEVI dashboard", () => {
     expect((await screen.findAllByText("新增用户")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("6,324 人").length).toBeGreaterThan(0);
     expect(screen.getByText("新用户首周关键转化")).toBeInTheDocument();
-    expect(screen.getByText("新增用户趋势")).toBeInTheDocument();
+    expect(screen.getByText("新增用户与活跃用户趋势")).toBeInTheDocument();
+    expect(screen.queryByText("新增用户趋势")).not.toBeInTheDocument();
     expect(screen.getAllByText("新用户分批次首周表现").length).toBeGreaterThan(0);
     expect(screen.getAllByText("新增注册").length).toBeGreaterThan(0);
     expect(screen.getAllByText("7日后活跃").length).toBeGreaterThan(0);
@@ -214,7 +215,9 @@ describe("MOVEVI dashboard", () => {
   it("expands complete content catalogs and paginates route performance", async () => {
     window.history.pushState({}, "", "/content");
     render(<App />);
-    expect(await screen.findByText("路线完播率趋势")).toBeInTheDocument();
+    expect(await screen.findByText("路线播放量与完播率趋势")).toBeInTheDocument();
+    expect(screen.getByText("实线：路线播放量")).toBeInTheDocument();
+    expect(screen.getByText("虚线：路线完播率")).toBeInTheDocument();
     expect(screen.getByText("城市路线分布")).toBeInTheDocument();
     expect(screen.getByText("32座")).toBeInTheDocument();
     expect(document.body).not.toHaveTextContent("收藏分享");
@@ -226,12 +229,12 @@ describe("MOVEVI dashboard", () => {
     expect(within(cityDialog).getByText("霍巴特")).toBeInTheDocument();
     await userEvent.click(within(cityDialog).getByRole("button", { name: "关闭" }));
 
-    await userEvent.click(screen.getByRole("button", { name: "展开有效路线列表" }));
-    const routeDialog = await screen.findByRole("dialog", { name: "有效路线" });
-    const catalogTable = within(routeDialog).getByRole("table", { name: "有效路线目录" });
+    await userEvent.click(screen.getByRole("button", { name: "展开已上线路线列表" }));
+    const routeDialog = await screen.findByRole("dialog", { name: "已上线路线" });
+    const catalogTable = within(routeDialog).getByRole("table", { name: "已上线路线目录" });
     expect(within(catalogTable).getAllByRole("row")).toHaveLength(11);
     expect(routeDialog).toHaveTextContent("共 1,248 条路线 · 第 1 / 125 页");
-    await userEvent.type(within(routeDialog).getByRole("searchbox", { name: "搜索有效路线" }), "东京");
+    await userEvent.type(within(routeDialog).getByRole("searchbox", { name: "搜索已上线路线" }), "东京");
     expect(routeDialog).toHaveTextContent("共 15 条路线 · 第 1 / 2 页");
     await userEvent.click(within(routeDialog).getByRole("button", { name: "关闭" }));
 
@@ -432,9 +435,9 @@ describe("MOVEVI dashboard", () => {
     expect(screen.getByText("运动时长")).toBeInTheDocument();
     expect(screen.queryByText("月运动里程")).not.toBeInTheDocument();
     expect(screen.queryByText("月运动时长")).not.toBeInTheDocument();
-    expect(screen.getByText("本期与上期环比 · 单位：人")).toBeInTheDocument();
-    expect(screen.getByText("实线：本期筛选范围内的活跃用户数")).toBeInTheDocument();
-    expect(screen.getByText("虚线：上期同口径留存用户数，用于观察留存变化")).toBeInTheDocument();
+    expect(screen.getByText("单位：人")).toBeInTheDocument();
+    expect(screen.getByText("实线：活跃用户")).toBeInTheDocument();
+    expect(screen.getByText("虚线：新增用户")).toBeInTheDocument();
     expect(await screen.findByRole("img", { name: /星期与三小时时段运动分布热力图/ })).toBeInTheDocument();
     expect(screen.getByTitle("周三 18–21：33%")).toBeInTheDocument();
     ["00–03", "03–06", "06–09", "09–12", "12–15", "15–18", "18–21", "21–24"].forEach((time) => expect(screen.getByText(time)).toBeInTheDocument());

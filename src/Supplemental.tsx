@@ -94,13 +94,9 @@ function DevicesDeepDive({ data }: { data: ModuleData }) {
 function UserDeepDive() {
   const profiles = [["年龄","25–35 岁",42],["性别","女性 54% · 男性 46%",54],["地区","华东",41],["购买产品","TS3PRO",28],["订阅","有效订阅",4.5]] as const;
   const frequencyTiers = [["未启动","近 30 日 0 次","6,324",17],["尝鲜用户","近 30 日 1 次","5,318",14],["轻度用户","近 30 日 2–3 次","8,584",23],["潜力用户","近 30 日 4–7 次","7,046",19],["稳定用户","近 30 日 8–15 次","6,104",16],["核心用户","近 30 日 15 次以上","2,508",7]] as const;
-  const newUserTrend = [{name:"08-04",value:1_086},{name:"08-09",value:1_214},{name:"08-14",value:1_168},{name:"08-19",value:1_326},{name:"08-24",value:1_418},{name:"08-29",value:1_512},{name:"09-02",value:1_624}];
   const newUserCohorts = [["08-01–08-07","1,086","912","382","276","25.4%"],["08-08–08-14","1,214","1,026","418","304","25.0%"],["08-15–08-21","1,326","1,148","472","346","26.1%"],["08-22–08-28","1,512","1,312","516","382","25.3%"],["08-29–09-02","1,186","1,060","446","—","观察中"]];
   return <>
-    <div className="deep-grid two user-new-grid">
-      <section className="deep-panel"><SectionHead title="新用户首周关键转化" desc="新增用户按首次注册去重，观察连接激活、首次运动、首条路线与7日后活跃。" /><MiniFunnel data={[["新增注册",6324],["连接激活",5458],["首次运动",2234],["首条路线",1686],["7日后活跃",978]]} /></section>
-      <section className="deep-panel"><SectionHead title="新增用户趋势" desc="按注册日期统计新增用户，单位：人。" /><LineVisual data={newUserTrend} label="新增用户" unit="人" /></section>
-    </div>
+    <section className="deep-panel"><SectionHead title="新用户首周关键转化" desc="新增用户按首次注册去重，观察连接激活、首次运动、首条路线与7日后活跃。" /><MiniFunnel data={[["新增注册",6324],["连接激活",5458],["首次运动",2234],["首条路线",1686],["7日后活跃",978]]} /></section>
     <section className="deep-panel new-user-cohort-panel"><SectionHead title="新用户分批次首周表现" desc="最近一批用户尚未完整到达第7日，活跃标记为观察中。" /><SimpleTable caption="新用户分批次首周表现" columns={["注册批次","新增用户","连接激活","首次运动","7日后活跃人数","7日后活跃率"]} rows={newUserCohorts} /></section>
     <section className="deep-panel"><SectionHead title="MOVEVI App 用户运动档案" desc="对应个人页的完成城市、完成路线、运动里程、运动时长与路线进度。" /><div className="summary-strip"><article><MapPin /><span>人均完成城市</span><b>2.4 座</b></article><article><Path /><span>人均完成路线</span><b>7.2 条</b></article><article><ChartLineUp /><span>人均运动里程</span><b>62.0 km</b></article><article><Clock /><span>人均运动时长</span><b>12.0 h</b></article></div></section>
     <section className="deep-panel user-retention-panel"><SectionHead title="D1–D90 用户留存曲线" desc="可继续按产品、城市与画像细分。" /><LineVisual data={retention} label="留存率" /></section>
