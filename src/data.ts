@@ -422,15 +422,15 @@ const modules: Record<string, ModuleData> = {
       { date: "32日", value: 9820, secondary: 78 },
     ], chartTitle: "路线播放量与完播率趋势", chartUnit: "次",
     distribution: contentCityGroups.map((group) => ({ name: group.continent, value: group.cities.length })), distributionTitle: "城市路线分布", distributionUnit: "座",
-    columns: ["路线名称", "所属城市", "所属大洲", "启动人数", "完播率", "复跑率", "平均时长", "综合热度"], rows: contentRoutePerformanceRows, sectionTitle: "城市与路线综合热度",
+    columns: ["路线名称", "所属城市", "所属大洲", "启动人数", "完播率", "复跑率", "平均播放时长", "上线时间"], rows: contentRoutePerformanceRows, sectionTitle: "路线经营数据",
     notes: [{ title: "3–4 公里处退出集中", text: "路线退出曲线在补给提示前出现明显抬升。", tone: "orange" }, { title: "滨水路线复跑更高", text: "同等难度下，滨水标签复跑率高 8.3pp。", tone: "teal" }],
   },
   explore: {
     title: "探索中心", description: "围绕点亮地球计划，衡量城市点亮、路线解锁、探索深度与勋章成长。",
     metrics: [metric("lit-city", "点亮城市用户", "12,486", 12486, "+9.2%", "至少点亮 1 座城市"), metric("unlocked-route", "解锁路线用户", "18,920", 18920, "+8.4%", "至少解锁 1 条路线"), metric("depth", "人均解锁路线", "3.7 条", 3.7, "+0.4", "探索活跃用户口径"), metric("badge", "勋章获得率", "42.6%", 42.6, "+2.1pp", "探索活跃用户口径")],
     trend: trend([32, 35, 38, 37, 42, 46, 49, 53, 55]), chartTitle: "第二条路线与探索深度", chartUnit: "%",
-    distribution: [{ name: "L1 初识", value: 31 }, { name: "L2 漫游", value: 28 }, { name: "L3 探索", value: 22 }, { name: "L4 远行", value: 13 }, { name: "L5 世界跑者", value: 6 }], distributionTitle: "五级用户等级",
-    columns: ["等级", "用户数", "完成路线", "城市数", "勋章率", "活动参与"], rows: [["L5 世界跑者", "2,336", "28.6", "7.8", "92%", "64%"], ["L4 远行", "5,058", "14.2", "4.6", "78%", "41%"], ["L3 探索", "8,560", "7.8", "2.9", "56%", "24%"], ["L2 漫游", "10,895", "3.6", "1.7", "31%", "13%"], ["L1 初识", "12,061", "1.2", "1.0", "12%", "5%"]], sectionTitle: "探索等级与参与",
+    distribution: [{ name: "青铜", value: 29 }, { name: "白银", value: 24 }, { name: "黄金", value: 19 }, { name: "钻石", value: 14 }, { name: "星耀", value: 9 }, { name: "王者", value: 5 }], distributionTitle: "六级用户等级",
+    columns: ["等级", "用户数", "完成路线", "城市数", "勋章率", "活动参与"], rows: [["王者", "1,937", "42.8", "10.6", "96%", "72%"], ["星耀", "3,502", "24.6", "6.8", "88%", "56%"], ["钻石", "5,447", "14.2", "4.6", "78%", "41%"], ["黄金", "7,394", "7.8", "2.9", "56%", "24%"], ["白银", "9,346", "3.6", "1.7", "31%", "13%"], ["青铜", "11,284", "1.2", "1.0", "12%", "5%"]], sectionTitle: "探索等级与参与",
     notes: [{ title: "第二条路线决定探索意愿", text: "完成第二条路线后，人均探索深度提升至 6.4 条。", tone: "teal" }, { title: "勋章触发偏晚", text: "42% 用户在获得首枚勋章前已停止探索。", tone: "orange" }],
   },
   commercial: {

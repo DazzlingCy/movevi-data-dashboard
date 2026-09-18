@@ -38,7 +38,7 @@ export const contentRouteCatalog: ContentRouteRecord[] = contentCityGroups
     onlineDate: `202${4 + (index % 3)}-${String((index % 12) + 1).padStart(2, "0")}-${String((index % 27) + 1).padStart(2, "0")}`,
   }));
 
-export const contentRoutePerformanceRows: (string | number)[][] = [
+const rawContentRoutePerformanceRows: (string | number)[][] = [
   ["上海 · 外滩夜航", "上海", "亚洲", "3,842", "82.4%", "34.8%", "24.6 分", "96"],
   ["杭州 · 西湖十景", "杭州", "亚洲", "3,197", "79.1%", "31.6%", "27.2 分", "93"],
   ["成都 · 锦城绿道", "成都", "亚洲", "2,786", "74.8%", "28.3%", "31.4 分", "88"],
@@ -70,3 +70,18 @@ export const contentRoutePerformanceRows: (string | number)[][] = [
   ["奥克兰 · 港湾火山", "奥克兰", "大洋洲", "876", "74.9%", "28.6%", "30.2 分", "83"],
   ["布宜诺斯艾利斯 · 探戈街区", "布宜诺斯艾利斯", "南美洲", "842", "71.4%", "24.8%", "27.4 分", "80"],
 ];
+
+const routeVariants = ["经典线", "晨跑线", "夜景线", "轻享线", "进阶线", "滨水线", "人文线", "活力线", "探索线", "挑战线"];
+
+export const contentRoutePerformanceRows: (string | number)[][] = rawContentRoutePerformanceRows.flatMap((row, cityIndex) => routeVariants.map((variant, variantIndex) => {
+  const index = cityIndex * routeVariants.length + variantIndex;
+  const year = 2024 + Math.floor(index / 120);
+  const month = String((index % 12) + 1).padStart(2, "0");
+  const day = String(6 + (index % 4) * 6).padStart(2, "0");
+  const routeNumber = `R${String(index + 1).padStart(3, "0")}`;
+  const starts = Math.round(Number(String(row[3]).replace(/,/g, "")) * (1 - variantIndex * 0.045));
+  const completion = Math.max(50, Number.parseFloat(String(row[4])) - variantIndex * 0.7);
+  const replay = Math.max(10, Number.parseFloat(String(row[5])) - variantIndex * 0.5);
+  const duration = Number.parseFloat(String(row[6])) + variantIndex * 0.6;
+  return [`${routeNumber} · ${row[0]} · ${variant}`, row[1], row[2], starts.toLocaleString("zh-CN"), `${completion.toFixed(1)}%`, `${replay.toFixed(1)}%`, `${duration.toFixed(1)} 分`, `${year}-${month}-${day}`];
+}));

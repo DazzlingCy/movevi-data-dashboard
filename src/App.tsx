@@ -509,7 +509,7 @@ function ModulePage({ moduleKey, filters, loader }: { moduleKey: ModuleKey; filt
   const [statusDefinitionsOpen, setStatusDefinitionsOpen] = useState(false);
   if (!result) return <LoadingState />;
   const { data } = result;
-  const pieColors = ["#0d9488", "#2563eb", "#f59e0b", "#8b5cf6", "#64748b"];
+  const pieColors = ["#0d9488", "#2563eb", "#f59e0b", "#8b5cf6", "#64748b", "#ec4899"];
   return <div className="module-page">
     <DataState status={result.status} />
     <section className="module-hero"><div><h2>{data.title}</h2><p>{data.description}</p></div><div className="quality-chip"><SealCheck weight="fill" /><div><b>数据可用</b><span>截止 {result.asOf}</span></div></div></section>

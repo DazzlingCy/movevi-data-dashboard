@@ -210,6 +210,15 @@ describe("MOVEVI dashboard", () => {
     expect(screen.getAllByText("新用户分批次首周表现").length).toBeGreaterThan(0);
     expect(screen.getAllByText("新增注册").length).toBeGreaterThan(0);
     expect(screen.getAllByText("7日后活跃").length).toBeGreaterThan(0);
+    const userTable = screen.getByRole("table", { name: "用户完整字段表" });
+    expect(screen.getByRole("button", { name: "导出用户完整字段表" })).toBeInTheDocument();
+    expect(within(userTable).getAllByRole("row")).toHaveLength(11);
+    expect(within(userTable).getByRole("button", { name: "累计里程排序" })).toBeInTheDocument();
+    await userEvent.type(screen.getByRole("searchbox", { name: "搜索用户完整字段" }), "MVU-1001");
+    expect(within(userTable).getAllByRole("row")).toHaveLength(2);
+    await userEvent.clear(screen.getByRole("searchbox", { name: "搜索用户完整字段" }));
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "按用户等级筛选" }), "王者");
+    expect(within(userTable).getAllByRole("row")).toHaveLength(7);
   });
 
   it("expands complete content catalogs and paginates route performance", async () => {
@@ -238,12 +247,14 @@ describe("MOVEVI dashboard", () => {
     expect(routeDialog).toHaveTextContent("共 15 条路线 · 第 1 / 2 页");
     await userEvent.click(within(routeDialog).getByRole("button", { name: "关闭" }));
 
-    const performanceTable = screen.getByRole("table", { name: "城市与路线综合热度" });
+    const performanceTable = screen.getByRole("table", { name: "路线经营数据" });
+    expect(screen.getByRole("button", { name: "导出路线经营数据" })).toBeInTheDocument();
     expect(within(performanceTable).getAllByRole("row")).toHaveLength(11);
-    expect(screen.getByText("共 30 条路线 · 第 1 / 3 页 · 当前 1–10 条")).toBeInTheDocument();
+    expect(screen.getByText("共 300 条路线 · 第 1 / 30 页 · 当前 1–10 条")).toBeInTheDocument();
     expect(within(performanceTable).queryByRole("columnheader", { name: /收藏|分享/ })).not.toBeInTheDocument();
 
     const regionTable = screen.getByRole("table", { name: "大洲内容数据" });
+    expect(screen.getByRole("button", { name: "导出大洲内容数据" })).toBeInTheDocument();
     expect(within(regionTable).getByRole("button", { name: "城市完成人数排序" })).toBeInTheDocument();
     expect(within(regionTable).getByRole("button", { name: "平均完成度排序" })).toBeInTheDocument();
     await userEvent.click(within(regionTable).getByRole("button", { name: "城市完成人数排序" }));
@@ -251,18 +262,26 @@ describe("MOVEVI dashboard", () => {
     expect(within(regionTable).getAllByRole("row")[1]).toHaveTextContent("南美洲");
 
     const cityTable = screen.getByRole("table", { name: "城市内容数据" });
-    ["完成人数", "平均完播率", "综合热度"].forEach((column) => expect(within(cityTable).getByRole("button", { name: `${column}排序` })).toBeInTheDocument());
-    await userEvent.click(within(cityTable).getByRole("button", { name: "综合热度排序" }));
-    await userEvent.click(within(cityTable).getByRole("button", { name: "综合热度排序" }));
-    expect(within(cityTable).getAllByRole("row")[1]).toHaveTextContent("西安");
+    ["完成人数", "平均完播率"].forEach((column) => expect(within(cityTable).getByRole("button", { name: `${column}排序` })).toBeInTheDocument());
+    expect(within(cityTable).getByRole("columnheader", { name: "上线时间" })).toBeInTheDocument();
+    expect(within(cityTable).queryByRole("columnheader", { name: "综合热度" })).not.toBeInTheDocument();
+    expect(within(cityTable).getByText("2024-03-18")).toBeInTheDocument();
 
-    ["启动人数", "完播率", "复跑率", "平均时长", "综合热度"].forEach((column) => expect(within(performanceTable).getByRole("button", { name: `${column}排序` })).toBeInTheDocument());
+    ["启动人数", "完播率", "复跑率", "平均播放时长"].forEach((column) => expect(within(performanceTable).getByRole("button", { name: `${column}排序` })).toBeInTheDocument());
+    expect(within(performanceTable).getByRole("columnheader", { name: "上线时间" })).toBeInTheDocument();
+    expect(within(performanceTable).queryByRole("columnheader", { name: "综合热度" })).not.toBeInTheDocument();
+    expect(within(performanceTable).getByText(/R001 · 上海 · 外滩夜航/)).toBeInTheDocument();
     await userEvent.click(within(performanceTable).getByRole("button", { name: "启动人数排序" }));
     await userEvent.click(within(performanceTable).getByRole("button", { name: "启动人数排序" }));
     expect(within(performanceTable).getAllByRole("row")[1]).toHaveTextContent("布宜诺斯艾利斯");
     await userEvent.type(screen.getByRole("searchbox", { name: "搜索路线名称" }), "塞纳河左岸");
-    expect(within(performanceTable).getAllByRole("row")).toHaveLength(2);
-    expect(within(performanceTable).getByText("巴黎 · 塞纳河左岸")).toBeInTheDocument();
+    expect(within(performanceTable).getAllByRole("row")).toHaveLength(11);
+    expect(within(performanceTable).getAllByText(/巴黎 · 塞纳河左岸/)).toHaveLength(10);
+    await userEvent.clear(screen.getByRole("searchbox", { name: "搜索路线名称" }));
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "按大洲筛选路线" }), "亚洲");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "按城市筛选路线" }), "东京");
+    expect(within(performanceTable).getAllByRole("row")).toHaveLength(11);
+    expect(within(performanceTable).getAllByText(/东京 · 隅田川晨跑/)).toHaveLength(10);
   });
 
   it("renders the activity center and opens a metric definition", async () => {
