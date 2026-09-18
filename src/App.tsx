@@ -473,28 +473,32 @@ function TrendChartPanel({ data, moduleKey }: { data: ModuleData; moduleKey: Mod
       ? ["实线：活跃用户", "虚线：新增用户"]
       : moduleKey === "content"
         ? ["实线：路线播放量", "虚线：路线完播率"]
+        : moduleKey === "explore"
+          ? ["实线：路线完成人数", "虚线：路线启动人数", "点线：完播率"]
       : null;
-  const primarySeriesName = moduleKey === "devices" ? "销售量" : moduleKey === "users" ? "活跃用户" : moduleKey === "content" ? "路线播放量" : "本期";
-  const secondarySeriesName = moduleKey === "devices" ? "激活量" : moduleKey === "users" ? "新增用户" : moduleKey === "content" ? "路线完播率" : "上期";
+  const primarySeriesName = moduleKey === "devices" ? "销售量" : moduleKey === "users" ? "活跃用户" : moduleKey === "content" ? "路线播放量" : moduleKey === "explore" ? "路线完成人数" : "本期";
+  const secondarySeriesName = moduleKey === "devices" ? "激活量" : moduleKey === "users" ? "新增用户" : moduleKey === "content" ? "路线完播率" : moduleKey === "explore" ? "路线启动人数" : "上期";
   const primarySeriesUnit = moduleKey === "devices" ? "台" : moduleKey === "content" ? "次" : data.chartUnit;
   const secondarySeriesUnit = moduleKey === "devices" ? "台" : moduleKey === "content" ? "%" : data.chartUnit;
   return <article className={chartMeaning ? "panel chart-panel annotated-chart-panel" : "panel chart-panel"}>
-    <PanelHeader title={data.chartTitle} meta={moduleKey === "devices" ? undefined : moduleKey === "users" ? `单位：${data.chartUnit}` : moduleKey === "content" ? "播放量：次 · 完播率：%" : `本期与上期环比 · 单位：${data.chartUnit}`} action={<ChartLineUp />} />
+    <PanelHeader title={data.chartTitle} meta={moduleKey === "devices" ? undefined : moduleKey === "users" ? `单位：${data.chartUnit}` : moduleKey === "content" ? "播放量：次 · 完播率：%" : moduleKey === "explore" ? "启动/完成人数：人 · 完播率：%" : `本期与上期环比 · 单位：${data.chartUnit}`} action={<ChartLineUp />} />
     {chartMeaning && <div className="chart-meaning" aria-label={`${data.chartTitle}图表含义`}>
       <span><i className="current" />{chartMeaning[0]}</span>
       <span><i className="previous" />{chartMeaning[1]}</span>
+      {chartMeaning[2] && <span><i className="rate" />{chartMeaning[2]}</span>}
     </div>}
-    <div className="chart-wrap" role="img" aria-label={moduleKey === "users" ? `${data.chartTitle}，活跃用户与新增用户对比趋势` : moduleKey === "content" ? `${data.chartTitle}，路线播放量与路线完播率对比趋势` : `${data.chartTitle}，本期与上期对比趋势`}>
+    <div className="chart-wrap" role="img" aria-label={moduleKey === "users" ? `${data.chartTitle}，活跃用户与新增用户对比趋势` : moduleKey === "content" ? `${data.chartTitle}，路线播放量与路线完播率对比趋势` : moduleKey === "explore" ? `${data.chartTitle}，路线完成人数、路线启动人数与完播率趋势` : `${data.chartTitle}，本期与上期对比趋势`}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data.trend} margin={{ top: 12, right: 18, left: -18, bottom: 0 }}>
           <defs><linearGradient id={`fill-${data.title}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d9488" stopOpacity={0.32} /><stop offset="100%" stopColor="#0d9488" stopOpacity={0.02} /></linearGradient></defs>
           <CartesianGrid vertical={false} stroke="#e8edf3" />
           <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} />
           <YAxis yAxisId="primary" domain={moduleKey === "users" ? [0, 1000] : undefined} ticks={moduleKey === "users" ? [0, 200, 400, 600, 800, 1000] : undefined} tickLine={false} axisLine={false} tick={{ fill: "#738095", fontSize: 12 }} />
-          {moduleKey === "content" && <YAxis yAxisId="secondary" orientation="right" domain={[0, 100]} tickFormatter={(value) => `${value}%`} tickLine={false} axisLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />}
+          {(moduleKey === "content" || moduleKey === "explore") && <YAxis yAxisId="secondary" orientation="right" domain={[0, 100]} tickFormatter={(value) => `${value}%`} tickLine={false} axisLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />}
           <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #dce4ed", boxShadow: "0 10px 30px rgba(15,23,42,.1)" }} />
           <Area yAxisId="primary" type="monotone" dataKey="value" name={`${primarySeriesName}（${primarySeriesUnit}）`} stroke="#0d9488" strokeWidth={2.5} fill={`url(#fill-${data.title})`} />
           <Line yAxisId={moduleKey === "content" ? "secondary" : "primary"} type="monotone" dataKey="secondary" name={`${secondarySeriesName}（${secondarySeriesUnit}）`} stroke="#94a3b8" strokeDasharray="4 4" dot={false} />
+          {moduleKey === "explore" && <Line yAxisId="secondary" type="monotone" dataKey="tertiary" name="完播率（%）" stroke="#f59e0b" strokeDasharray="2 3" strokeWidth={2} dot={false} />}
         </AreaChart>
       </ResponsiveContainer>
     </div>

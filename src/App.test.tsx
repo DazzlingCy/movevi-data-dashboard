@@ -221,6 +221,16 @@ describe("MOVEVI dashboard", () => {
     expect(within(userTable).getAllByRole("row")).toHaveLength(7);
   });
 
+  it("shows route starts, completions and completion rate in the explore center", async () => {
+    window.history.pushState({}, "", "/explore");
+    render(<App />);
+    expect(await screen.findByText("路线启动、完成与完播率趋势")).toBeInTheDocument();
+    expect(screen.getByText("启动/完成人数：人 · 完播率：%")).toBeInTheDocument();
+    expect(screen.getByText("实线：路线完成人数")).toBeInTheDocument();
+    expect(screen.getByText("虚线：路线启动人数")).toBeInTheDocument();
+    expect(screen.getByText("点线：完播率")).toBeInTheDocument();
+  });
+
   it("expands complete content catalogs and paginates route performance", async () => {
     window.history.pushState({}, "", "/content");
     render(<App />);

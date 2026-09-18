@@ -44,7 +44,7 @@ export type ChannelPerformance = {
   status: "健康" | "关注" | "异常";
 };
 
-export type TimeSeriesPoint = { date: string; value: number; secondary?: number };
+export type TimeSeriesPoint = { date: string; value: number; secondary?: number; tertiary?: number };
 
 export type Insight = {
   id: string;
@@ -428,7 +428,17 @@ const modules: Record<string, ModuleData> = {
   explore: {
     title: "探索中心", description: "围绕点亮地球计划，衡量城市点亮、路线解锁、探索深度与勋章成长。",
     metrics: [metric("lit-city", "点亮城市用户", "12,486", 12486, "+9.2%", "至少点亮 1 座城市"), metric("unlocked-route", "解锁路线用户", "18,920", 18920, "+8.4%", "至少解锁 1 条路线"), metric("depth", "人均解锁路线", "3.7 条", 3.7, "+0.4", "探索活跃用户口径"), metric("badge", "勋章获得率", "42.6%", 42.6, "+2.1pp", "探索活跃用户口径")],
-    trend: trend([32, 35, 38, 37, 42, 46, 49, 53, 55]), chartTitle: "第二条路线与探索深度", chartUnit: "%",
+    trend: [
+      { date: "8日", value: 628, secondary: 912, tertiary: 68.9 },
+      { date: "11日", value: 704, secondary: 1_006, tertiary: 70.0 },
+      { date: "14日", value: 762, secondary: 1_074, tertiary: 70.9 },
+      { date: "17日", value: 738, secondary: 1_052, tertiary: 70.2 },
+      { date: "20日", value: 816, secondary: 1_128, tertiary: 72.3 },
+      { date: "23日", value: 884, secondary: 1_196, tertiary: 73.9 },
+      { date: "26日", value: 936, secondary: 1_242, tertiary: 75.4 },
+      { date: "29日", value: 1_012, secondary: 1_318, tertiary: 76.8 },
+      { date: "32日", value: 1_086, secondary: 1_392, tertiary: 78.0 },
+    ], chartTitle: "路线启动、完成与完播率趋势", chartUnit: "人",
     distribution: [{ name: "青铜", value: 29 }, { name: "白银", value: 24 }, { name: "黄金", value: 19 }, { name: "钻石", value: 14 }, { name: "星耀", value: 9 }, { name: "王者", value: 5 }], distributionTitle: "六级用户等级",
     columns: ["等级", "用户数", "完成路线", "城市数", "勋章率", "活动参与"], rows: [["王者", "1,937", "42.8", "10.6", "96%", "72%"], ["星耀", "3,502", "24.6", "6.8", "88%", "56%"], ["钻石", "5,447", "14.2", "4.6", "78%", "41%"], ["黄金", "7,394", "7.8", "2.9", "56%", "24%"], ["白银", "9,346", "3.6", "1.7", "31%", "13%"], ["青铜", "11,284", "1.2", "1.0", "12%", "5%"]], sectionTitle: "探索等级与参与",
     notes: [{ title: "第二条路线决定探索意愿", text: "完成第二条路线后，人均探索深度提升至 6.4 条。", tone: "teal" }, { title: "勋章触发偏晚", text: "42% 用户在获得首枚勋章前已停止探索。", tone: "orange" }],
